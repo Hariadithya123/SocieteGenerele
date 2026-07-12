@@ -1,0 +1,102 @@
+[
+  {
+    "app_id": "APP-001",
+    "name": "PaymentGateway",
+    "team": "FinTech",
+    "criticality": "CRITICAL",
+    "type": "proprietary",
+    "owner": "alice@corp.com",
+    "language": "Java",
+    "description": "Handles all card payment processing and PCI-DSS scope"
+  },
+  {
+    "app_id": "APP-002",
+    "name": "CustomerPortal",
+    "team": "Product",
+    "criticality": "HIGH",
+    "type": "proprietary",
+    "owner": "bob@corp.com",
+    "language": "Python",
+    "description": "Customer-facing self-service web portal"
+  },
+  {
+    "app_id": "APP-003",
+    "name": "HRPortal",
+    "team": "HR-IT",
+    "criticality": "HIGH",
+    "type": "proprietary",
+    "owner": "carol@corp.com",
+    "language": "Java",
+    "description": "Employee HR management and payroll system"
+  },
+  {
+    "app_id": "APP-004",
+    "name": "DataWarehouse",
+    "team": "Analytics",
+    "criticality": "HIGH",
+    "type": "proprietary",
+    "owner": "dave@corp.com",
+    "language": "Python",
+    "description": "Central analytics and reporting data lake"
+  },
+  {
+    "app_id": "APP-005",
+    "name": "AuthService",
+    "team": "Security",
+    "criticality": "CRITICAL",
+    "type": "proprietary",
+    "owner": "eve@corp.com",
+    "language": "Java",
+    "description": "OAuth2/OIDC identity and access management service"
+  },
+  {
+    "app_id": "APP-006",
+    "name": "EmailService",
+    "team": "Platform",
+    "criticality": "MEDIUM",
+    "type": "proprietary",
+    "owner": "frank@corp.com",
+    "language": "Python",
+    "description": "Transactional and marketing email delivery service"
+  },
+  {
+    "app_id": "APP-007",
+    "name": "ReportingEngine",
+    "team": "Analytics",
+    "criticality": "MEDIUM",
+    "type": "proprietary",
+    "owner": "grace@corp.com",
+    "language": "Python",
+    "description": "Scheduled report generation and export service"
+  },
+  {
+    "app_id": "APP-008",
+    "name": "DevToolkit",
+    "team": "DevOps",
+    "criticality": "LOW",
+    "type": "internal",
+    "owner": "henry@corp.com",
+    "language": "Python",
+    "description": "Internal developer utilities and CI/CD helpers"
+  },
+  {
+    "app_id": "APP-009",
+    "name": "MonitoringDash",
+    "team": "SRE",
+    "criticality": "LOW",
+    "type": "internal",
+    "owner": "irene@corp.com",
+    "language": "Python",
+    "description": "Infrastructure health and alerting dashboard"
+  },
+  {
+    "app_id": "APP-010",
+    "name": "LegacyBillingApp",
+    "team": "Finance",
+    "criticality": "HIGH",
+    "type": "proprietary",
+    "owner": "john@corp.com",
+    "language": "Java",
+    "description": "Legacy billing system \u2014 migration pending Q4"
+  }
+]

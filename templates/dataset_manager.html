@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dataset Manager | SBOM Risk Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <style>
+    .manager-container {
+      padding: 30px 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .manager-header {
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .dataset-card {
+      background: rgba(13, 22, 38, 0.6);
+      border: 1px solid rgba(26, 92, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .dataset-card:hover {
+      border-color: #1a5cff;
+      box-shadow: 0 0 20px rgba(26, 92, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .dataset-card.active {
+      border-color: #00ff88;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
+      background: rgba(0, 255, 136, 0.05);
+    }
+    .dataset-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    .dataset-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 5px;
+    }
+    .dataset-status {
+      font-size: 0.85rem;
+      color: #8899aa;
+    }
+    .dataset-card.active .dataset-status {
+      color: #00ff88;
+      font-weight: 500;
+    }
+    .upload-area {
+      border: 2px dashed rgba(26, 92, 255, 0.5);
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      background: rgba(13, 22, 38, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 30px;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: #1a5cff;
+      background: rgba(26, 92, 255, 0.05);
+    }
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 15px;
+      color: #1a5cff;
+    }
+    .upload-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .upload-subtitle {
+      color: #8899aa;
+      font-size: 0.9rem;
+    }
+    #fileInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">🛡️</span>
+    <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    <span class="nav-subtitle">Intelligence Platform</span>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/datasets" class="nav-link active">Dataset Manager</a>
+  </div>
+</nav>
+
+<div class="manager-container">
+  <div class="manager-header">
+    <div>
+      <h1 class="page-title">Dataset Manager</h1>
+      <p class="page-subtitle" style="color: #8899aa;">Upload, validate, and switch between SBOM datasets instantly.</p>
+    </div>
+  </div>
+
+  <div id="uploadWizard">
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📁</div>
+      <div class="upload-title" id="uploadTitle">Upload Dataset (ZIP)</div>
+      <div class="upload-subtitle" id="uploadSubtitle">Drag and drop a .zip file containing applications.json, sbom_dependencies.csv, etc.</div>
+      <input type="file" id="fileInput" accept=".zip" onchange="handleFileUpload(event)"/>
+    </div>
+    
+    <div id="validationReport" style="display: none; background: rgba(13, 22, 38, 0.6); padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #1a2744;">
+      <h3 style="color: #fff; margin-bottom: 15px;">Validation Report</h3>
+      <div id="reportContent" style="font-family: monospace; color: #8899aa; line-height: 1.6; margin-bottom: 15px;"></div>
+      <button id="analyzeBtn" class="nav-btn" style="display: none;" onclick="analyzeDataset()">Analyze & Load Dataset</button>
+    </div>
+  </div>
+
+  <h2 style="color: #fff; font-size: 1.3rem; margin-bottom: 10px; margin-top: 40px;">Available Datasets</h2>
+  <div class="card-grid">
+    {% for ds in datasets %}
+    <div class="dataset-card {% if current == ds %}active{% endif %}" onclick="switchDataset('{{ ds }}')">
+      <div class="dataset-icon">
+        {% if current == ds %}✅{% else %}📊{% endif %}
+      </div>
+      <div class="dataset-name">{{ ds | title }} Dataset</div>
+      <div class="dataset-status">
+        {% if current == ds %}Currently Active{% else %}Click to Load{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+  let pendingDataset = "";
+
+  async function switchDataset(dsName) {
+    try {
+      const res = await fetch('/api/dataset/switch', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({dataset_name: dsName})
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/";
+      } else {
+        alert('Failed to switch dataset: ' + data.error);
+      }
+    } catch (e) {
+      alert('Failed to switch dataset: ' + e);
+    }
+  }
+
+  async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    document.getElementById("uploadTitle").innerText = "Uploading & Validating...";
+    document.getElementById("uploadSubtitle").innerText = "Please wait...";
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    // Auto-generate name based on file name
+    const dsName = file.name.replace(".zip", "") + "_" + Math.floor(Math.random()*1000);
+    formData.append("dataset_name", dsName);
+    
+    try {
+      const res = await fetch('/api/dataset/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      document.getElementById("uploadArea").style.display = "none";
+      document.getElementById("validationReport").style.display = "block";
+      
+      let html = "";
+      if (data.report) {
+         html = data.report.map(line => {
+             if(line.startsWith("✓")) return `<span style="color:#00ff88">${line}</span><br/>`;
+             if(line.startsWith("✗")) return `<span style="color:#ff3366">${line}</span><br/>`;
+             return line + "<br/>";
+         }).join("");
+      }
+      
+      if (data.success) {
+        document.getElementById("reportContent").innerHTML = html + "<br/><span style='color:#00ff88'>Validation passed! Ready for analysis.</span>";
+        document.getElementById("analyzeBtn").style.display = "inline-block";
+        pendingDataset = data.dataset_name;
+      } else {
+        document.getElementById("reportContent").innerHTML = html + `<br/><span style='color:#ff3366'>Validation failed: ${data.error}</span>`;
+        // Allow retry
+        document.getElementById("analyzeBtn").style.display = "none";
+        setTimeout(() => {
+          document.getElementById("uploadArea").style.display = "block";
+          document.getElementById("uploadTitle").innerText = "Upload Dataset (ZIP)";
+          document.getElementById("uploadSubtitle").innerText = "Drag and drop a .zip file...";
+        }, 5000);
+      }
+    } catch (e) {
+      alert("Upload failed: " + e);
+      window.location.reload();
+    }
+  }
+
+  function analyzeDataset() {
+    if(pendingDataset) {
+        switchDataset(pendingDataset);
+    }
+  }
+</script>
+
+</body>
+</html>

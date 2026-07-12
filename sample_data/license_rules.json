@@ -1,0 +1,152 @@
+[
+  {
+    "license": "MIT",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Most permissive license. No restrictions on use."
+  },
+  {
+    "license": "Apache-2.0",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Permissive. Requires attribution and NOTICE file preservation."
+  },
+  {
+    "license": "BSD-2-Clause",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Simple and permissive."
+  },
+  {
+    "license": "BSD-3-Clause",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Adds non-endorsement clause."
+  },
+  {
+    "license": "ISC",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Functionally equivalent to MIT."
+  },
+  {
+    "license": "PSF-2.0",
+    "category": "permissive",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Python Software Foundation license \u2014 permissive."
+  },
+  {
+    "license": "LGPL-2.1",
+    "category": "weak-copyleft",
+    "proprietary_compatible": true,
+    "copyleft": true,
+    "risk_level": "MEDIUM",
+    "commercial_use": true,
+    "distribution_required": true,
+    "notes": "OK for linking but modifications must be open-sourced. Dynamic linking only in proprietary."
+  },
+  {
+    "license": "LGPL-3.0",
+    "category": "weak-copyleft",
+    "proprietary_compatible": true,
+    "copyleft": true,
+    "risk_level": "MEDIUM",
+    "commercial_use": true,
+    "distribution_required": true,
+    "notes": "Same as LGPL-2.1 but stronger copyleft. Dynamic linking OK."
+  },
+  {
+    "license": "MPL-2.0",
+    "category": "weak-copyleft",
+    "proprietary_compatible": true,
+    "copyleft": true,
+    "risk_level": "MEDIUM",
+    "commercial_use": true,
+    "distribution_required": true,
+    "notes": "File-level copyleft. Modifications to MPL files must be shared."
+  },
+  {
+    "license": "GPL-2.0",
+    "category": "strong-copyleft",
+    "proprietary_compatible": false,
+    "copyleft": true,
+    "risk_level": "CRITICAL",
+    "commercial_use": false,
+    "distribution_required": true,
+    "notes": "VIRAL: Any software using GPL-2.0 code must also be GPL. Incompatible with proprietary."
+  },
+  {
+    "license": "GPL-3.0",
+    "category": "strong-copyleft",
+    "proprietary_compatible": false,
+    "copyleft": true,
+    "risk_level": "CRITICAL",
+    "commercial_use": false,
+    "distribution_required": true,
+    "notes": "VIRAL: Strongest copyleft. Adds anti-tivoization clause. Incompatible with proprietary."
+  },
+  {
+    "license": "AGPL-3.0",
+    "category": "strong-copyleft",
+    "proprietary_compatible": false,
+    "copyleft": true,
+    "risk_level": "CRITICAL",
+    "commercial_use": false,
+    "distribution_required": true,
+    "notes": "VIRAL: GPL-3.0 + network use triggers copyleft. Most restrictive open-source license."
+  },
+  {
+    "license": "CC-BY-SA-4.0",
+    "category": "creative-commons",
+    "proprietary_compatible": false,
+    "copyleft": true,
+    "risk_level": "HIGH",
+    "commercial_use": true,
+    "distribution_required": true,
+    "notes": "Share-alike \u2014 derivatives must use same license. Not intended for software."
+  },
+  {
+    "license": "UNLICENSED",
+    "category": "unknown",
+    "proprietary_compatible": false,
+    "copyleft": false,
+    "risk_level": "HIGH",
+    "commercial_use": false,
+    "distribution_required": false,
+    "notes": "No license specified \u2014 all rights reserved by default. Legal risk to use commercially."
+  },
+  {
+    "license": "COMMERCIAL",
+    "category": "commercial",
+    "proprietary_compatible": true,
+    "copyleft": false,
+    "risk_level": "LOW",
+    "commercial_use": true,
+    "distribution_required": false,
+    "notes": "Explicit commercial license purchased. No open-source obligations."
+  }
+]

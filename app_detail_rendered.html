@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HRPortal — SBOM Analysis | Risk Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+      <span class="nav-icon">🛡️</span>
+      <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    </a>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-link">← Dashboard</a>
+    <a href="/report" class="nav-link">Full Report</a>
+    <a href="/api/app/APP-003" class="nav-link">API JSON</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── App Header ─────────────────────────────────── -->
+  <div class="app-header card" style="border-left: 4px solid #ff3860;">
+    <div class="app-header-left">
+      <div class="app-badge" style="background: #ff386020; color: #ff3860; border: 1px solid #ff386040;">
+        CRITICAL RISK
+      </div>
+      <h1 class="app-title">HRPortal</h1>
+      <div class="app-meta">
+        <span>📁 HR-IT</span>
+        <span>👤 carol@corp.com</span>
+        <span>💻 Java</span>
+        <span class="criticality-badge crit-high">HIGH</span>
+      </div>
+      <p class="app-desc">Employee HR management and payroll system</p>
+    </div>
+    <div class="app-header-right">
+      <div class="score-gauge">
+        <svg viewBox="0 0 120 80" class="gauge-svg">
+          <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="#1a2744" stroke-width="12" stroke-linecap="round"/>
+          <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="#ff3860"
+                stroke-width="12" stroke-linecap="round"
+                stroke-dasharray="155.901 157"
+                class="gauge-arc"/>
+        </svg>
+        <div class="gauge-value" style="color: #ff3860;">99.3</div>
+        <div class="gauge-label">/ 100</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Score Breakdown ────────────────────────────── -->
+  <div class="score-breakdown-grid">
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">⚡</div>
+      <div class="sbc-label">Vulnerability Score</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:73.0%; background: #ff3860;"></div>
+      </div>
+      <div class="sbc-value">73.0/100</div>
+      <div class="sbc-detail">4 CVEs · 2 Critical</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">⚖️</div>
+      <div class="sbc-label">License Risk Score</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:79.8%; background: #a855f7;"></div>
+      </div>
+      <div class="sbc-value">79.8/100</div>
+      <div class="sbc-detail">2 conflict(s) found</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">🔧</div>
+      <div class="sbc-label">Maintenance Risk</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:93.6%; background: #ffd700;"></div>
+      </div>
+      <div class="sbc-value">93.6/100</div>
+      <div class="sbc-detail">3 unmaintained lib(s)</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">✖️</div>
+      <div class="sbc-label">Technical Risk</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:77.8%; background: #00d1b2;"></div>
+      </div>
+      <div class="sbc-value">77.8/100</div>
+      <div class="sbc-detail">Pre-business impact baseline</div>
+    </div>
+  </div>
+
+  <!-- ── Explain Risk Breakdown ───────────────────────── -->
+  <div class="card explain-risk-card" style="margin-bottom: 20px; border-left: 4px solid #1a5cff;">
+    <div class="card-header" style="cursor: pointer;" onclick="document.getElementById('explainRiskContent').classList.toggle('hidden')">
+      <h2 class="card-title">🧮 Explain Risk Calculation</h2>
+      <span class="card-badge">Click to Expand/Collapse</span>
+    </div>
+    <div id="explainRiskContent" class="hidden" style="padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #a1b2c3; line-height: 1.6; background: #08111e; border-radius: 6px; margin-top: 10px;">
+      
+        <div style="margin-bottom: 8px;">&gt; Technical Risk Components: Vulnerabilities (73.0 * 60%) + License (79.8 * 25%) + Maintenance (93.6 * 15%) = 77.8</div>
+      
+        <div style="margin-bottom: 8px;">&gt; Business Impact Multipliers: Criticality HIGH (1.25x) * Internet Facing (1.2x) * Patches Available (1.25x)</div>
+      
+        <div style="margin-bottom: 8px;">&gt; Final Business Risk Score calculation: 77.8 * 1.25 * 1.2 * 1.25 = 145.8 (Normalized to 99.3/100)</div>
+      
+        <div style="margin-bottom: 8px;">&gt; Security Health Deduction: Technical Risk (-77.8) + Deep Dependency Penalty (-0.8) + Maintenance Penalty (-6) = 15.5/100</div>
+      
+    </div>
+  </div>
+
+  <!-- ── Main Content Grid ──────────────────────────── -->
+  <div class="detail-grid">
+
+    <!-- Left: CVE Attack Chains -->
+    <div class="detail-col">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚡ CVE Attack Chains</h2>
+          <span class="card-badge">4 unique paths</span>
+        </div>
+        
+          
+          <div class="chain-item sev-border-critical">
+            <div class="chain-header">
+              <span class="sev-badge sev-critical">CRITICAL</span>
+              <span class="chain-cve">CVE-2022-22965</span>
+              <span class="chain-cvss">CVSS 9.8</span>
+              
+                <span class="patch-badge patch-ok">✓ Patch Available</span>
+              
+            </div>
+            <div class="chain-path">
+              <span class="chain-path-label">Attack Path:</span>
+              <code class="chain-path-code">HRPortal → spring-webmvc</code>
+            </div>
+            <div class="chain-desc">Spring4Shell: RCE via data binding with JDK9+ ClassLoader. Critical for Spring MVC applications.</div>
+            
+            <div class="chain-fix">
+              <span class="fix-label">Fix:</span> Upgrade to <code>spring-webmvc v5.3.18</code>
+            </div>
+            
+            
+            <div class="chain-mitre">
+              <span class="mitre-label">MITRE:</span>
+              <a href="https://attack.mitre.org/techniques/T1190" target="_blank" class="mitre-link">T1190</a>
+            </div>
+            
+          </div>
+          
+          <div class="chain-item sev-border-critical">
+            <div class="chain-header">
+              <span class="sev-badge sev-critical">CRITICAL</span>
+              <span class="chain-cve">CVE-2022-1471</span>
+              <span class="chain-cvss">CVSS 9.8</span>
+              
+                <span class="patch-badge patch-ok">✓ Patch Available</span>
+              
+            </div>
+            <div class="chain-path">
+              <span class="chain-path-label">Attack Path:</span>
+              <code class="chain-path-code">HRPortal → snakeyaml</code>
+            </div>
+            <div class="chain-desc">Constructor deserialization in SnakeYAML allows remote code execution.</div>
+            
+            <div class="chain-fix">
+              <span class="fix-label">Fix:</span> Upgrade to <code>snakeyaml v2.0</code>
+            </div>
+            
+            
+            <div class="chain-mitre">
+              <span class="mitre-label">MITRE:</span>
+              <a href="https://attack.mitre.org/techniques/T1190" target="_blank" class="mitre-link">T1190</a>
+            </div>
+            
+          </div>
+          
+          <div class="chain-item sev-border-high">
+            <div class="chain-header">
+              <span class="sev-badge sev-high">HIGH</span>
+              <span class="chain-cve">CVE-2022-25857</span>
+              <span class="chain-cvss">CVSS 7.5</span>
+              
+                <span class="patch-badge patch-ok">✓ Patch Available</span>
+              
+            </div>
+            <div class="chain-path">
+              <span class="chain-path-label">Attack Path:</span>
+              <code class="chain-path-code">HRPortal → snakeyaml</code>
+            </div>
+            <div class="chain-desc">Denial of service in SnakeYAML billion laughs / deeply nested YAML attack.</div>
+            
+            <div class="chain-fix">
+              <span class="fix-label">Fix:</span> Upgrade to <code>snakeyaml v1.31</code>
+            </div>
+            
+            
+            <div class="chain-mitre">
+              <span class="mitre-label">MITRE:</span>
+              <a href="https://attack.mitre.org/techniques/T1499" target="_blank" class="mitre-link">T1499</a>
+            </div>
+            
+          </div>
+          
+          <div class="chain-item sev-border-medium">
+            <div class="chain-header">
+              <span class="sev-badge sev-medium">MEDIUM</span>
+              <span class="chain-cve">CVE-2021-42550</span>
+              <span class="chain-cvss">CVSS 6.6</span>
+              
+                <span class="patch-badge patch-ok">✓ Patch Available</span>
+              
+            </div>
+            <div class="chain-path">
+              <span class="chain-path-label">Attack Path:</span>
+              <code class="chain-path-code">HRPortal → slf4j-api → logback-classic</code>
+            </div>
+            <div class="chain-desc">JNDI injection via Logback configuration if attacker controls logback config. Requires config write access.</div>
+            
+            <div class="chain-fix">
+              <span class="fix-label">Fix:</span> Upgrade to <code>logback-classic v1.2.9</code>
+            </div>
+            
+            
+            <div class="chain-mitre">
+              <span class="mitre-label">MITRE:</span>
+              <a href="https://attack.mitre.org/techniques/T1190" target="_blank" class="mitre-link">T1190</a>
+            </div>
+            
+          </div>
+          
+          
+        
+      </div>
+
+      <!-- License Conflicts -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚖️ License Conflicts</h2>
+          <span class="card-badge badge-danger">2 conflict(s)</span>
+        </div>
+        
+          
+          <div class="license-item">
+            <div class="license-header">
+              <span class="lic-badge lic-critical">CRITICAL</span>
+              <span class="lic-name">mysql-connector v8.0.28</span>
+              <span class="lic-type">GPL-2.0</span>
+              <span class="lic-depth">Depth 1</span>
+            </div>
+            <div class="license-desc">mysql-connector uses GPL-2.0 — viral copyleft. Distributing APP-003 may require open-sourcing entire codebase.</div>
+          </div>
+          
+          <div class="license-item">
+            <div class="license-header">
+              <span class="lic-badge lic-critical">CRITICAL</span>
+              <span class="lic-name">gpl-math-lib v2.1.0</span>
+              <span class="lic-type">GPL-3.0</span>
+              <span class="lic-depth">Depth 1</span>
+            </div>
+            <div class="license-desc">gpl-math-lib uses GPL-3.0 — viral copyleft. Distributing APP-003 may require open-sourcing entire codebase.</div>
+          </div>
+          
+        
+      </div>
+
+      <!-- Unmaintained -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🔧 Unmaintained Libraries</h2>
+          <span class="card-badge">3 found</span>
+        </div>
+        
+          
+          <div class="unmaint-item">
+            <div class="unmaint-header">
+              <span class="unmaint-name">commons-beanutils v1.9.3</span>
+              <span class="unmaint-age">⏱ 3y 11m ago</span>
+            </div>
+            <div class="unmaint-detail">Last updated: 2022-07-31 · Dep type: direct</div>
+          </div>
+          
+          <div class="unmaint-item">
+            <div class="unmaint-header">
+              <span class="unmaint-name">dom4j v1.6.1</span>
+              <span class="unmaint-age">⏱ 3y 9m ago</span>
+            </div>
+            <div class="unmaint-detail">Last updated: 2022-10-06 · Dep type: direct</div>
+          </div>
+          
+          <div class="unmaint-item">
+            <div class="unmaint-header">
+              <span class="unmaint-name">log4j-1.x v1.2.17</span>
+              <span class="unmaint-age">⏱ 3y 8m ago</span>
+            </div>
+            <div class="unmaint-detail">Last updated: 2022-10-20 · Dep type: direct</div>
+          </div>
+          
+        
+      </div>
+    </div>
+
+    <!-- Right: Graph + Playbook + Compliance -->
+    <div class="detail-col">
+
+      <!-- Dependency Graph -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🕸️ Dependency Graph</h2>
+          <div class="graph-legend">
+            <span class="legend-dot" style="background:#ff3860;"></span><span>Vulnerable</span>
+            <span class="legend-dot" style="background:#a855f7;"></span><span>License Issue</span>
+            <span class="legend-dot" style="background:#ffd700;"></span><span>Unmaintained</span>
+            <span class="legend-dot" style="background:#23d160;"></span><span>Clean</span>
+          </div>
+        </div>
+        <div id="cy" style="height:380px; background:#0a1628; border-radius:8px;"></div>
+        <div id="nodeInfo" class="node-info hidden"></div>
+      </div>
+
+      <!-- What-If Simulation -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🧪 What-If Risk Simulation</h2>
+        </div>
+        <div class="simulate-controls" style="display: flex; gap: 10px; margin-top: 10px;">
+          <input type="text" id="simLib" placeholder="Library (e.g. log4j-core)" class="search-input" style="flex: 2; padding: 8px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;">
+          <input type="text" id="simVer" placeholder="Version (e.g. 2.17.1)" class="search-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;">
+          <button onclick="runSimulation()" class="button" style="padding: 8px 16px; border: none; background: #1a5cff; color: white; border-radius: 4px; cursor: pointer; font-weight: 600;">Simulate Patch</button>
+        </div>
+        <div id="simResult" class="hidden" style="margin-top: 15px; padding: 15px; background: #08111e; border-left: 4px solid #23d160; border-radius: 4px;"></div>
+      </div>
+
+      <!-- AI Security Copilot -->
+      <div class="card copilot-card" style="border: 1px solid #1a2744;">
+        <div class="card-header" style="background: linear-gradient(90deg, #1a2744 0%, #1a5cff 100%); margin: -20px -20px 15px -20px; padding: 15px 20px; border-radius: 8px 8px 0 0;">
+          <h2 class="card-title" style="color: white; margin: 0;">🧠 AI Security Copilot</h2>
+        </div>
+        <div id="copilotChat" style="height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 10px;">
+          <div class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px;">
+            I am your Security Copilot. I analyzed <strong>HRPortal</strong> (Health: 15.5/100).<br><br>
+            Try asking:<br>
+            • <em>Why is this application Critical?</em><br>
+            • <em>Explain CVE-2021-44228</em><br>
+            • <em>How can I reduce this risk?</em><br>
+            • <em>Show all GPL conflicts</em>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="copilotInput" placeholder="Ask the Copilot..." style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;" onkeypress="if(event.key === 'Enter') askCopilot()">
+          <button onclick="askCopilot()" style="padding: 10px 15px; border: none; background: #1a5cff; color: white; border-radius: 4px; cursor: pointer; font-weight: 600;">Ask</button>
+        </div>
+      </div>
+
+      <!-- AI Narrative -->
+      <div class="card narrative-card">
+        <div class="card-header">
+          <h2 class="card-title">📝 Executive Summary</h2>
+          <span class="card-badge">Auto-generated</span>
+        </div>
+        <div class="narrative-body markdown-body">
+          <p><strong>HRPortal</strong> (HR-IT team) has a risk score of <strong>99.3/100</strong> [CRITICAL], indicating severely compromised supply chain security posture.<br />
+As a <strong>HIGH-criticality</strong> system, vulnerabilities here carry amplified business impact.</p>
+<h3>🔴 Vulnerability Findings (4 unique CVEs)</h3>
+<p>The most severe finding is <strong>CVE-2022-22965</strong> (CVSS 9.8) in <code>spring-webmvc v5.3.10</code>.<br />
+<strong>Attack Chain:</strong> <code>HRPortal → spring-webmvc</code><br />
+<strong>Description:</strong> Spring4Shell: RCE via data binding with JDK9+ ClassLoader. Critical for Spring MVC applications.<br />
+<strong>Remediation:</strong> Upgrade to <code>spring-webmvc v5.3.18</code> (patch available).<br />
+<strong>MITRE ATT&amp;CK:</strong> <a href="https://attack.mitre.org/techniques/T1190">T1190</a> — Exploit Public-Facing Application</p>
+<blockquote>
+<p>⚠️ <strong>Spring4Shell (CVE-2022-22965) detected.</strong> RCE via Spring MVC data binding on JDK9+. Exploitation requires a servlet container — verify your deployment configuration.</p>
+</blockquote>
+<h3>⚖️ License Conflict Findings (2 conflict(s))</h3>
+<ul>
+<li><code>mysql-connector v8.0.28</code> — <strong>GPL-2.0</strong> license detected in a proprietary application.<br />
+  mysql-connector uses GPL-2.0 — viral copyleft. Distributing APP-003 may require open-sourcing entire codebase.</li>
+<li><code>gpl-math-lib v2.1.0</code> — <strong>GPL-3.0</strong> license detected in a proprietary application.<br />
+  gpl-math-lib uses GPL-3.0 — viral copyleft. Distributing APP-003 may require open-sourcing entire codebase.<br />
+<strong>Risk:</strong> GPL/AGPL viral copyleft could require open-sourcing the entire application codebase upon distribution.<br />
+<strong>Remediation:</strong> Replace with MIT/Apache-2.0 licensed alternatives or obtain a commercial license.</li>
+</ul>
+<h3>🔧 Maintenance Risk (3 unmaintained libraries)</h3>
+<p>The oldest dependency is <code>commons-beanutils v1.9.3</code>, last updated <strong>2022-07-31</strong> (3.9 years ago).<br />
+Unmaintained libraries accumulate unpatched CVEs over time and are not eligible for vendor security support.<br />
+<strong>Remediation:</strong> Migrate to actively maintained alternatives. Prioritize libraries with no security policy.</p>
+        </div>
+      </div>
+
+      <!-- Remediation Playbook -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🎯 Remediation Playbook</h2>
+          <span class="card-badge">8 steps</span>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 1</span>
+            <span class="step-priority" style="background: #ff386020; color: #ff3860; border: 1px solid #ff386040;">P0 — IMMEDIATE</span>
+            <span class="step-effort effort-low">LOW effort</span>
+          </div>
+          <div class="step-action">Patch spring-webmvc</div>
+          <div class="step-detail">Upgrade `spring-webmvc` from `v5.3.10` to `v5.3.18` to fix CVE-2022-22965 (CVSS 9.8).</div>
+          <div class="step-why">💡 <em>Spring4Shell: RCE via data binding with JDK9+ ClassLoader. Critical for Spring MVC applications.</em></div>
+          <div class="step-cmd"><code>&lt;!-- In pom.xml --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;...&lt;/groupId&gt;
+  &lt;artifactId&gt;spring-webmvc&lt;/artifactId&gt;
+  &lt;version&gt;5.3.18&lt;/version&gt;
+&lt;/dependency&gt;</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 2</span>
+            <span class="step-priority" style="background: #ff386020; color: #ff3860; border: 1px solid #ff386040;">P0 — IMMEDIATE</span>
+            <span class="step-effort effort-low">LOW effort</span>
+          </div>
+          <div class="step-action">Patch snakeyaml</div>
+          <div class="step-detail">Upgrade `snakeyaml` from `v1.29` to `v2.0` to fix CVE-2022-1471 (CVSS 9.8).</div>
+          <div class="step-why">💡 <em>Constructor deserialization in SnakeYAML allows remote code execution.</em></div>
+          <div class="step-cmd"><code>&lt;!-- In pom.xml --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;...&lt;/groupId&gt;
+  &lt;artifactId&gt;snakeyaml&lt;/artifactId&gt;
+  &lt;version&gt;2.0&lt;/version&gt;
+&lt;/dependency&gt;</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 3</span>
+            <span class="step-priority" style="background: #ff8c0020; color: #ff8c00; border: 1px solid #ff8c0040;">P1 — THIS SPRINT</span>
+            <span class="step-effort effort-low">LOW effort</span>
+          </div>
+          <div class="step-action">Patch snakeyaml</div>
+          <div class="step-detail">Upgrade `snakeyaml` from `v1.29` to `v1.31` to fix CVE-2022-25857 (CVSS 7.5).</div>
+          <div class="step-why">💡 <em>Denial of service in SnakeYAML billion laughs / deeply nested YAML attack.</em></div>
+          <div class="step-cmd"><code>&lt;!-- In pom.xml --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;...&lt;/groupId&gt;
+  &lt;artifactId&gt;snakeyaml&lt;/artifactId&gt;
+  &lt;version&gt;1.31&lt;/version&gt;
+&lt;/dependency&gt;</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 4</span>
+            <span class="step-priority" style="background: #ff8c0020; color: #ff8c00; border: 1px solid #ff8c0040;">P1 — THIS SPRINT</span>
+            <span class="step-effort effort-medium">MEDIUM effort</span>
+          </div>
+          <div class="step-action">Resolve GPL-2.0 license conflict in mysql-connector</div>
+          <div class="step-detail">Replace `mysql-connector` with a permissive-licensed alternative (MIT/Apache-2.0), or obtain a commercial license.</div>
+          <div class="step-why">💡 <em>GPL/AGPL viral copyleft in proprietary software creates serious legal exposure.</em></div>
+          <div class="step-cmd"><code># Search for MIT/Apache alternatives to mysql-connector</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 5</span>
+            <span class="step-priority" style="background: #ff8c0020; color: #ff8c00; border: 1px solid #ff8c0040;">P1 — THIS SPRINT</span>
+            <span class="step-effort effort-medium">MEDIUM effort</span>
+          </div>
+          <div class="step-action">Resolve GPL-3.0 license conflict in gpl-math-lib</div>
+          <div class="step-detail">Replace `gpl-math-lib` with a permissive-licensed alternative (MIT/Apache-2.0), or obtain a commercial license.</div>
+          <div class="step-why">💡 <em>GPL/AGPL viral copyleft in proprietary software creates serious legal exposure.</em></div>
+          <div class="step-cmd"><code># Search for MIT/Apache alternatives to gpl-math-lib</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 6</span>
+            <span class="step-priority" style="background: #ffd70020; color: #ffd700; border: 1px solid #ffd70040;">P2 — NEXT QUARTER</span>
+            <span class="step-effort effort-high">HIGH effort</span>
+          </div>
+          <div class="step-action">Replace unmaintained library commons-beanutils</div>
+          <div class="step-detail">`commons-beanutils v1.9.3` hasn&#39;t been updated since 2022-07-31 (3 years). Migrate to a maintained alternative.</div>
+          <div class="step-why">💡 <em>Unmaintained libraries accumulate unpatched CVEs and receive no vendor security support.</em></div>
+          <div class="step-cmd"><code># Plan migration from commons-beanutils — search for actively maintained forks or alternatives</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 7</span>
+            <span class="step-priority" style="background: #ffd70020; color: #ffd700; border: 1px solid #ffd70040;">P2 — NEXT QUARTER</span>
+            <span class="step-effort effort-high">HIGH effort</span>
+          </div>
+          <div class="step-action">Replace unmaintained library dom4j</div>
+          <div class="step-detail">`dom4j v1.6.1` hasn&#39;t been updated since 2022-10-06 (3 years). Migrate to a maintained alternative.</div>
+          <div class="step-why">💡 <em>Unmaintained libraries accumulate unpatched CVEs and receive no vendor security support.</em></div>
+          <div class="step-cmd"><code># Plan migration from dom4j — search for actively maintained forks or alternatives</code></div>
+        </div>
+        
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step 8</span>
+            <span class="step-priority" style="background: #ffd70020; color: #ffd700; border: 1px solid #ffd70040;">P2 — NEXT QUARTER</span>
+            <span class="step-effort effort-low">LOW effort</span>
+          </div>
+          <div class="step-action">Patch logback-classic (Medium severity)</div>
+          <div class="step-detail">Upgrade `logback-classic` to fix CVE-2021-42550 (CVSS 6.6).</div>
+          <div class="step-why">💡 <em>JNDI injection via Logback configuration if attacker controls logback config. Requires config write access.</em></div>
+          <div class="step-cmd"><code>&lt;!-- In pom.xml --&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;...&lt;/groupId&gt;
+  &lt;artifactId&gt;logback-classic&lt;/artifactId&gt;
+  &lt;version&gt;1.2.9&lt;/version&gt;
+&lt;/dependency&gt;</code></div>
+        </div>
+        
+      </div>
+
+      <!-- Compliance -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📋 Compliance Mapping</h2>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">OWASP</span>
+          <span class="comp-ctrl">A01:2021-Broken Access Control</span>
+          <span class="comp-name-sm">Vulnerability mapped to OWASP</span>
+          <span class="comp-st st-fail">
+            ❌
+            FAIL
+          </span>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">NIST</span>
+          <span class="comp-ctrl">NIST SP 800-53: SA-11</span>
+          <span class="comp-name-sm">Vulnerability mapped to NIST</span>
+          <span class="comp-st st-fail">
+            ❌
+            FAIL
+          </span>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">OpenSSF</span>
+          <span class="comp-ctrl">OpenSSF: Security Policies</span>
+          <span class="comp-name-sm">Vulnerability mapped to OpenSSF</span>
+          <span class="comp-st st-fail">
+            ❌
+            FAIL
+          </span>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">Legal / IP</span>
+          <span class="comp-ctrl">License Compliance</span>
+          <span class="comp-name-sm">Open Source License Compliance</span>
+          <span class="comp-st st-fail">
+            ❌
+            FAIL
+          </span>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">OpenSSF</span>
+          <span class="comp-ctrl">Scorecard / Maintained</span>
+          <span class="comp-name-sm">Project Maintenance Risk</span>
+          <span class="comp-st st-warn">
+            ⚠️
+            WARN
+          </span>
+        </div>
+        
+        <div class="comp-row">
+          <span class="comp-fw">NIST CSF</span>
+          <span class="comp-ctrl">SC-2</span>
+          <span class="comp-name-sm">Supplier Assessment</span>
+          <span class="comp-st st-warn">
+            ⚠️
+            WARN
+          </span>
+        </div>
+        
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <div>🛡️ SBOM Risk Intelligence Platform</div>
+  <div>OWASP A06 · NIST CM-8 · EO 14028 · OpenSSF Scorecard</div>
+</footer>
+
+<script>
+const CYTOSCAPE_DATA = [{"data": {"id": "APP-003", "label": "HRPortal", "node_type": "app", "has_cve": false, "max_cvss": 0, "cve_ids": [], "license": "", "last_updated": "", "is_unmaintained": false}, "classes": "app-node"}, {"data": {"id": "slf4j-api@1.7.36", "label": "slf4j-api\n1.7.36", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2025-04-04", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "logback-classic@1.2.7", "label": "logback-classic\n1.2.7", "node_type": "library", "has_cve": true, "max_cvss": 6.6, "cve_ids": ["CVE-2021-42550"], "license": "LGPL-2.1", "last_updated": "2025-05-05", "is_unmaintained": false}, "classes": "vuln-node cvss-medium"}, {"data": {"id": "numpy@1.23.1", "label": "numpy\n1.23.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2025-07-19", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "kafka-clients@3.2.1", "label": "kafka-clients\n3.2.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-07-24", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "lombok@1.18.24", "label": "lombok\n1.18.24", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2025-08-14", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "aws-sdk-java@1.12.261", "label": "aws-sdk-java\n1.12.261", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-02-27", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "h2@2.1.214", "label": "h2\n2.1.214", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "EPL-1.0", "last_updated": "2026-05-01", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "azure-identity@1.5.3", "label": "azure-identity\n1.5.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-05-13", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "flask@2.2.2", "label": "flask\n2.2.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2026-01-08", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "junit@5.8.2", "label": "junit\n5.8.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "EPL-2.0", "last_updated": "2026-02-06", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "matplotlib@3.5.3", "label": "matplotlib\n3.5.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "PSF-2.0", "last_updated": "2026-04-15", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "boto3@1.24.59", "label": "boto3\n1.24.59", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-11-23", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "black@22.8.0", "label": "black\n22.8.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-01-14", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "feign-core@11.8", "label": "feign-core\n11.8", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-10-16", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "celery@5.2.7", "label": "celery\n5.2.7", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2025-07-15", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "spring-boot@2.7.0", "label": "spring-boot\n2.7.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-12-01", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "mypy@0.971", "label": "mypy\n0.971", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2025-11-28", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "resilience4j@1.7.1", "label": "resilience4j\n1.7.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-02-18", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "mockito-core@4.5.1", "label": "mockito-core\n4.5.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-01-20", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "click@8.1.3", "label": "click\n8.1.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2026-04-30", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "liquibase-core@4.15.0", "label": "liquibase-core\n4.15.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-07-29", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "sqlalchemy@1.4.40", "label": "sqlalchemy\n1.4.40", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2025-07-15", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "redis-clients@3.8.0", "label": "redis-clients\n3.8.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-03-10", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "spring-core@5.3.20", "label": "spring-core\n5.3.20", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-09-05", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "micrometer-core@1.9.2", "label": "micrometer-core\n1.9.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-01-31", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "rich@12.5.1", "label": "rich\n12.5.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-03-14", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "postgresql@42.4.0", "label": "postgresql\n42.4.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-2-Clause", "last_updated": "2025-10-12", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "pandas@1.4.3", "label": "pandas\n1.4.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2025-11-23", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "fastapi@0.85.0", "label": "fastapi\n0.85.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-01-18", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "zipkin-reporter@2.16.3", "label": "zipkin-reporter\n2.16.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-07-13", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "mapstruct@1.5.2", "label": "mapstruct\n1.5.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-08-24", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "alembic@1.8.1", "label": "alembic\n1.8.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-02-13", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "scipy@1.9.1", "label": "scipy\n1.9.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2025-12-21", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "typer@0.6.1", "label": "typer\n0.6.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-05-08", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "netty-all@4.1.79", "label": "netty-all\n4.1.79", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-02-08", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "isort@5.10.1", "label": "isort\n5.10.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-05-20", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "spring-context@5.3.20", "label": "spring-context\n5.3.20", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-11-12", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "opentelemetry-api@1.17.0", "label": "opentelemetry-api\n1.17.0", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-01-19", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "pydantic@1.10.2", "label": "pydantic\n1.10.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-05-03", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "guava@31.1", "label": "guava\n31.1", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2026-02-17", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "scikit-learn@1.1.2", "label": "scikit-learn\n1.1.2", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2025-08-19", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "ruff@0.0.78", "label": "ruff\n0.0.78", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2026-03-06", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "pytest@7.1.3", "label": "pytest\n7.1.3", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "MIT", "last_updated": "2025-08-03", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "httpclient@4.5.13", "label": "httpclient\n4.5.13", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2025-12-28", "is_unmaintained": false}, "classes": "clean-node"}, {"data": {"id": "spring-webmvc@5.3.10", "label": "spring-webmvc\n5.3.10", "node_type": "library", "has_cve": true, "max_cvss": 9.8, "cve_ids": ["CVE-2022-22965"], "license": "Apache-2.0", "last_updated": "2025-06-20", "is_unmaintained": false}, "classes": "vuln-node cvss-critical"}, {"data": {"id": "snakeyaml@1.29", "label": "snakeyaml\n1.29", "node_type": "library", "has_cve": true, "max_cvss": 9.8, "cve_ids": ["CVE-2022-1471", "CVE-2022-25857"], "license": "Apache-2.0", "last_updated": "2025-02-01", "is_unmaintained": false}, "classes": "vuln-node cvss-critical"}, {"data": {"id": "mysql-connector@8.0.28", "label": "mysql-connector\n(GPL-2.0)", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "GPL-2.0", "last_updated": "2025-04-26", "is_unmaintained": false}, "classes": "license-node"}, {"data": {"id": "gpl-math-lib@2.1.0", "label": "gpl-math-lib\n(GPL-3.0)", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "GPL-3.0", "last_updated": "2025-09-14", "is_unmaintained": false}, "classes": "license-node"}, {"data": {"id": "log4j-1.x@1.2.17", "label": "log4j-1.x\n\u26a0 Unmaintained", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2022-10-20", "is_unmaintained": true}, "classes": "unmaintained-node"}, {"data": {"id": "commons-beanutils@1.9.3", "label": "commons-beanutils\n\u26a0 Unmaintained", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "Apache-2.0", "last_updated": "2022-07-31", "is_unmaintained": true}, "classes": "unmaintained-node"}, {"data": {"id": "dom4j@1.6.1", "label": "dom4j\n\u26a0 Unmaintained", "node_type": "library", "has_cve": false, "max_cvss": 0.0, "cve_ids": [], "license": "BSD-3-Clause", "last_updated": "2022-10-06", "is_unmaintained": true}, "classes": "unmaintained-node"}, {"data": {"id": "APP-003__spring-webmvc@5.3.10", "source": "APP-003", "target": "spring-webmvc@5.3.10", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__snakeyaml@1.29", "source": "APP-003", "target": "snakeyaml@1.29", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__mysql-connector@8.0.28", "source": "APP-003", "target": "mysql-connector@8.0.28", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__gpl-math-lib@2.1.0", "source": "APP-003", "target": "gpl-math-lib@2.1.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__log4j-1.x@1.2.17", "source": "APP-003", "target": "log4j-1.x@1.2.17", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__commons-beanutils@1.9.3", "source": "APP-003", "target": "commons-beanutils@1.9.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__dom4j@1.6.1", "source": "APP-003", "target": "dom4j@1.6.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__opentelemetry-api@1.17.0", "source": "APP-003", "target": "opentelemetry-api@1.17.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__matplotlib@3.5.3", "source": "APP-003", "target": "matplotlib@3.5.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__click@8.1.3", "source": "APP-003", "target": "click@8.1.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__kafka-clients@3.2.1", "source": "APP-003", "target": "kafka-clients@3.2.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__resilience4j@1.7.1", "source": "APP-003", "target": "resilience4j@1.7.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__junit@5.8.2", "source": "APP-003", "target": "junit@5.8.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__lombok@1.18.24", "source": "APP-003", "target": "lombok@1.18.24", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__sqlalchemy@1.4.40", "source": "APP-003", "target": "sqlalchemy@1.4.40", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__redis-clients@3.8.0", "source": "APP-003", "target": "redis-clients@3.8.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__mapstruct@1.5.2", "source": "APP-003", "target": "mapstruct@1.5.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__guava@31.1", "source": "APP-003", "target": "guava@31.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__numpy@1.23.1", "source": "APP-003", "target": "numpy@1.23.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__mockito-core@4.5.1", "source": "APP-003", "target": "mockito-core@4.5.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__black@22.8.0", "source": "APP-003", "target": "black@22.8.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__fastapi@0.85.0", "source": "APP-003", "target": "fastapi@0.85.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__micrometer-core@1.9.2", "source": "APP-003", "target": "micrometer-core@1.9.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__netty-all@4.1.79", "source": "APP-003", "target": "netty-all@4.1.79", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__h2@2.1.214", "source": "APP-003", "target": "h2@2.1.214", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__feign-core@11.8", "source": "APP-003", "target": "feign-core@11.8", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__zipkin-reporter@2.16.3", "source": "APP-003", "target": "zipkin-reporter@2.16.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__liquibase-core@4.15.0", "source": "APP-003", "target": "liquibase-core@4.15.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__postgresql@42.4.0", "source": "APP-003", "target": "postgresql@42.4.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__pandas@1.4.3", "source": "APP-003", "target": "pandas@1.4.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__azure-identity@1.5.3", "source": "APP-003", "target": "azure-identity@1.5.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__slf4j-api@1.7.36", "source": "APP-003", "target": "slf4j-api@1.7.36", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__rich@12.5.1", "source": "APP-003", "target": "rich@12.5.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__scipy@1.9.1", "source": "APP-003", "target": "scipy@1.9.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__httpclient@4.5.13", "source": "APP-003", "target": "httpclient@4.5.13", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__typer@0.6.1", "source": "APP-003", "target": "typer@0.6.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__aws-sdk-java@1.12.261", "source": "APP-003", "target": "aws-sdk-java@1.12.261", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__scikit-learn@1.1.2", "source": "APP-003", "target": "scikit-learn@1.1.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__isort@5.10.1", "source": "APP-003", "target": "isort@5.10.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__spring-context@5.3.20", "source": "APP-003", "target": "spring-context@5.3.20", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__celery@5.2.7", "source": "APP-003", "target": "celery@5.2.7", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__alembic@1.8.1", "source": "APP-003", "target": "alembic@1.8.1", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__spring-boot@2.7.0", "source": "APP-003", "target": "spring-boot@2.7.0", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__mypy@0.971", "source": "APP-003", "target": "mypy@0.971", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__spring-core@5.3.20", "source": "APP-003", "target": "spring-core@5.3.20", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__boto3@1.24.59", "source": "APP-003", "target": "boto3@1.24.59", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__pytest@7.1.3", "source": "APP-003", "target": "pytest@7.1.3", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__ruff@0.0.78", "source": "APP-003", "target": "ruff@0.0.78", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__flask@2.2.2", "source": "APP-003", "target": "flask@2.2.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "APP-003__pydantic@1.10.2", "source": "APP-003", "target": "pydantic@1.10.2", "dep_type": "direct"}, "classes": "edge-direct"}, {"data": {"id": "slf4j-api@1.7.36__logback-classic@1.2.7", "source": "slf4j-api@1.7.36", "target": "logback-classic@1.2.7", "dep_type": "transitive"}, "classes": "edge-transitive"}];
+
+// ── Cytoscape Dependency Graph ──────────────────────────
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  elements: CYTOSCAPE_DATA,
+  style: [
+    { selector: 'node', style: {
+        'label': 'data(label)',
+        'text-valign': 'center', 'text-halign': 'center',
+        'font-family': 'Inter', 'font-size': '9px',
+        'color': '#e0e6ed', 'text-wrap': 'wrap', 'text-max-width': '90px',
+        'width': 70, 'height': 70,
+        'border-width': 2, 'border-color': '#1a2744',
+    }},
+    { selector: '.app-node', style: {
+        'background-color': '#1a5cff', 'border-color': '#4d8eff',
+        'font-weight': '700', 'font-size': '11px',
+        'width': 90, 'height': 90, 'shape': 'hexagon',
+    }},
+    { selector: '.vuln-node', style: { 'background-color': '#3d0a14', 'border-color': '#ff3860', 'border-width': 3 }},
+    { selector: '.cvss-critical', style: { 'background-color': '#4a0a0a', 'border-color': '#ff1744', 'border-width': 4 }},
+    { selector: '.cvss-high', style: { 'background-color': '#3d1a00', 'border-color': '#ff8c00' }},
+    { selector: '.license-node', style: { 'background-color': '#2a0a3d', 'border-color': '#a855f7' }},
+    { selector: '.unmaintained-node', style: { 'background-color': '#2a2000', 'border-color': '#ffd700' }},
+    { selector: '.clean-node', style: { 'background-color': '#0a1628', 'border-color': '#1a3a5c' }},
+    { selector: 'edge', style: {
+        'width': 1.5, 'line-color': '#1a3a5c',
+        'target-arrow-color': '#1a5cff', 'target-arrow-shape': 'triangle',
+        'curve-style': 'bezier', 'opacity': 0.7,
+    }},
+    { selector: '.edge-transitive', style: { 'line-style': 'dashed', 'line-color': '#ffd70060' }},
+  ],
+  layout: { name: 'cose', animate: true, padding: 30, nodeRepulsion: 8000, idealEdgeLength: 80 },
+  userZoomingEnabled: true, userPanningEnabled: true,
+});
+
+// Node click info
+const nodeInfo = document.getElementById('nodeInfo');
+cy.on('tap', 'node', function(evt) {
+  const data = evt.target.data();
+  if (data.node_type === 'app') {
+    nodeInfo.innerHTML = `<strong>${data.label}</strong> — Application Root`;
+  } else {
+    let html = `<strong>${data.label.split('\n')[0]}</strong>`;
+    if (data.has_cve) html += ` <span style="color:#ff3860">⚠ ${data.cve_ids.length} CVE(s)</span>`;
+    if (data.is_unmaintained) html += ` <span style="color:#ffd700">🔧 Unmaintained</span>`;
+    html += `<br><small>License: ${data.license} · Last updated: ${data.last_updated}</small>`;
+    nodeInfo.innerHTML = html;
+  }
+  nodeInfo.classList.remove('hidden');
+});
+cy.on('tap', function(evt) {
+  if (evt.target === cy) nodeInfo.classList.add('hidden');
+});
+
+// ── What-If Simulation ──────────────────────────────────
+async function runSimulation() {
+  const lib = document.getElementById('simLib').value.trim();
+  const ver = document.getElementById('simVer').value.trim();
+  if (!lib || !ver) return alert("Enter library and version to simulate.");
+  
+  const res = await fetch('/api/simulate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app_id: 'APP-003', library: lib, new_version: ver })
+  });
+  
+  const simResult = document.getElementById('simResult');
+  if (res.ok) {
+    const data = await res.json();
+    simResult.innerHTML = `
+      <strong>Simulation Complete:</strong><br>
+      Risk Score: 📉 Drops from ${data.current_score.risk_score} to <strong>${data.simulated_score.risk_score}</strong> (-${data.reduction_absolute} pts, ${data.reduction_percentage}% reduction).<br>
+      Security Health: 📈 Improves from ${data.current_score.health_score} to <strong>${data.simulated_score.health_score}</strong>.
+    `;
+    simResult.classList.remove('hidden');
+  } else {
+    const data = await res.json();
+    alert(data.error);
+  }
+}
+
+// ── AI Copilot ──────────────────────────────────────────
+async function askCopilot() {
+  const input = document.getElementById('copilotInput');
+  const query = input.value.trim();
+  if (!query) return;
+  
+  const chat = document.getElementById('copilotChat');
+  
+  // Add user message
+  chat.innerHTML += `<div class="chat-msg user-msg" style="align-self: flex-end; background: #23d16020; border: 1px solid #23d16040; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px; color: #e0e6ed;">${query}</div>`;
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+  
+  // Add loading
+  const loadId = 'loading-' + Date.now();
+  chat.innerHTML += `<div id="${loadId}" class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 10px; border-radius: 8px; font-size: 13px;">Thinking...</div>`;
+  chat.scrollTop = chat.scrollHeight;
+  
+  const res = await fetch('/api/ai/copilot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app_id: 'APP-003', query: query })
+  });
+  
+  document.getElementById(loadId).remove();
+  
+  if (res.ok) {
+    const data = await res.json();
+    chat.innerHTML += `<div class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px; line-height: 1.5;">${data.response.replace(/\\n/g, '<br>')}</div>`;
+  } else {
+    chat.innerHTML += `<div class="chat-msg bot-msg" style="align-self: flex-start; background: #3d0a14; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px;">Error connecting to Copilot API.</div>`;
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+</body>
+</html>

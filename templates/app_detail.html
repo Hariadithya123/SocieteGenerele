@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ application.name }} — SBOM Analysis | Risk Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.29.2/cytoscape.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+      <span class="nav-icon">🛡️</span>
+      <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    </a>
+  </div>
+  <div class="nav-links">
+    <div class="dataset-switcher">
+      <select id="datasetSelect" onchange="switchDataset(this.value)">
+        {% for ds in available_datasets %}
+          <option value="{{ ds }}" {% if current_dataset == ds %}selected{% endif %}>{{ ds | title }} Dataset</option>
+        {% endfor %}
+      </select>
+    </div>
+    <a href="/datasets" class="nav-btn">Dataset Manager</a>
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/report" class="nav-link">Full Report</a>
+    <a href="/api/app/{{ application.app_id }}" class="nav-link">API JSON</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── App Header ─────────────────────────────────── -->
+  <div class="app-header card" style="border-left: 4px solid {{ score.risk_color }};">
+    <div class="app-header-left">
+      <div class="app-badge" style="background: {{ score.risk_color }}20; color: {{ score.risk_color }}; border: 1px solid {{ score.risk_color }}40;">
+        {{ score.risk_band }} RISK
+      </div>
+      <h1 class="app-title">{{ application.name }}</h1>
+      <div class="app-meta">
+        <span>📁 {{ application.team }}</span>
+        <span>👤 {{ application.owner }}</span>
+        <span>💻 {{ application.language }}</span>
+        <span class="criticality-badge crit-{{ application.criticality | lower }}">{{ application.criticality }}</span>
+      </div>
+      <p class="app-desc">{{ application.description }}</p>
+    </div>
+    <div class="app-header-right">
+      <div class="score-gauge">
+        <svg viewBox="0 0 120 80" class="gauge-svg">
+          <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="#1a2744" stroke-width="12" stroke-linecap="round"/>
+          <path d="M10,70 A50,50 0 0,1 110,70" fill="none" stroke="{{ score.risk_color }}"
+                stroke-width="12" stroke-linecap="round"
+                stroke-dasharray="{{ (score.risk_score / 100) * 157 }} 157"
+                class="gauge-arc"/>
+        </svg>
+        <div class="gauge-value" style="color: {{ score.risk_color }};">{{ score.risk_score }}</div>
+        <div class="gauge-label">/ 100</div>
+      </div>
+      <div style="text-align: center; margin-top: 10px; font-weight: 500; color: #a1b2c3;">
+        Dataset Confidence: <strong style="color: #23d160;">{{ score.confidence }}%</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Score Breakdown ────────────────────────────── -->
+  <div class="score-breakdown-grid">
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">✖️</div>
+      <div class="sbc-label">Technical Risk</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:{{ score.technical_risk }}%; background: #00d1b2;"></div>
+      </div>
+      <div class="sbc-value">{{ score.technical_risk }}/100</div>
+      <div class="sbc-detail">Pre-business impact baseline</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">📈</div>
+      <div class="sbc-label">Business Impact</div>
+      <div class="sbc-value" style="font-size: 24px; margin-top: 10px;">{{ score.business_impact }}x</div>
+      <div class="sbc-detail" style="margin-top: 5px;">Criticality &amp; Patch Modifiers</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">⚖️</div>
+      <div class="sbc-label">License Risk</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:{{ score.lic_score }}%; background: #a855f7;"></div>
+      </div>
+      <div class="sbc-value">{{ score.lic_score }}/100</div>
+      <div class="sbc-detail">{{ score.license_conflicts }} conflict(s)</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">🔧</div>
+      <div class="sbc-label">Maintenance Risk</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:{{ score.maint_score }}%; background: #ffd700;"></div>
+      </div>
+      <div class="sbc-value">{{ score.maint_score }}/100</div>
+      <div class="sbc-detail">{{ score.unmaintained_libs }} unmaintained lib(s)</div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">🌐</div>
+      <div class="sbc-label">Exposure</div>
+      <div class="sbc-value" style="font-size: 20px; margin-top: 10px;">
+        {% if score.internet_exposure %}Public (Internet){% else %}Internal Only{% endif %}
+      </div>
+    </div>
+    <div class="score-breakdown-card">
+      <div class="sbc-icon">🎯</div>
+      <div class="sbc-label">Final Score</div>
+      <div class="sbc-bar">
+        <div class="sbc-fill" style="width:{{ score.risk_score }}%; background: {{ score.risk_color }};"></div>
+      </div>
+      <div class="sbc-value" style="color: {{ score.risk_color }};">{{ score.risk_score }}/100</div>
+      <div class="sbc-detail">Normalized Risk</div>
+    </div>
+  </div>
+
+  <!-- ── Explain Risk Breakdown ───────────────────────── -->
+  <div class="card explain-risk-card" style="margin-bottom: 20px; border-left: 4px solid #1a5cff;">
+    <div class="card-header" style="cursor: pointer;" onclick="document.getElementById('explainRiskContent').classList.toggle('hidden')">
+      <h2 class="card-title">🧮 Explain Risk Calculation</h2>
+      <span class="card-badge">Click to Expand/Collapse</span>
+    </div>
+    <div id="explainRiskContent" class="hidden" style="padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #a1b2c3; line-height: 1.6; background: #08111e; border-radius: 6px; margin-top: 10px;">
+      {% for line in score.explain_risk %}
+        <div style="margin-bottom: 8px;">&gt; {{ line }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Main Content Grid ──────────────────────────── -->
+  <div class="detail-grid">
+
+    <!-- Left: CVE Attack Chains -->
+    <div class="detail-col">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚡ CVE Attack Chains</h2>
+          <span class="card-badge">{{ chains|length }} unique paths</span>
+        </div>
+        {% if chains %}
+          {% for chain in chains[:10] %}
+          <div class="chain-item sev-border-{{ chain.severity | lower }}">
+            <div class="chain-header">
+              <span class="sev-badge sev-{{ chain.severity | lower }}">{{ chain.severity }}</span>
+              <span class="chain-cve">{{ chain.cve_id }}</span>
+              <span class="chain-cvss">CVSS {{ chain.cvss }}</span>
+              {% if chain.patch_available %}
+                <span class="patch-badge patch-ok">✓ Patch Available</span>
+              {% else %}
+                <span class="patch-badge patch-none">⚠ No Patch</span>
+              {% endif %}
+            </div>
+            <div class="chain-path">
+              <span class="chain-path-label">Attack Path:</span>
+              <code class="chain-path-code">{{ chain.path_str }}</code>
+            </div>
+            <div class="chain-desc">{{ chain.description }}</div>
+            {% if chain.patch_available %}
+            <div class="chain-fix">
+              <span class="fix-label">Fix:</span> Upgrade to <code>{{ chain.vulnerable_lib }} v{{ chain.patch_version }}</code>
+            </div>
+            {% endif %}
+            {% if chain.mitre %}
+            <div class="chain-mitre">
+              <span class="mitre-label">MITRE:</span>
+              <a href="https://attack.mitre.org/techniques/{{ chain.mitre.replace('.','/') }}" target="_blank" class="mitre-link">{{ chain.mitre }}</a>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% if chains|length > 10 %}
+          <div class="more-findings">+ {{ chains|length - 10 }} more CVE paths found. <a href="/api/app/{{ application.app_id }}">View full JSON →</a></div>
+          {% endif %}
+        {% else %}
+          <div class="empty-state">✅ No CVE attack chains detected</div>
+        {% endif %}
+      </div>
+
+      <!-- License Conflicts -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">⚖️ License Conflicts</h2>
+          <span class="card-badge {% if lic_conflicts %}badge-danger{% endif %}">{{ lic_conflicts|length }} conflict(s)</span>
+        </div>
+        {% if lic_conflicts %}
+          {% for lic in lic_conflicts %}
+          <div class="license-item">
+            <div class="license-header">
+              <span class="lic-badge lic-{{ lic.lic_risk | lower }}">{{ lic.lic_risk }}</span>
+              <span class="lic-name">{{ lic.library }} v{{ lic.version }}</span>
+              <span class="lic-type">{{ lic.license }}</span>
+              <span class="lic-depth">Depth {{ lic.depth }}</span>
+            </div>
+            <div class="license-desc">{{ lic.description }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">✅ No license conflicts detected</div>
+        {% endif %}
+      </div>
+
+      <!-- Unmaintained -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🔧 Unmaintained Libraries</h2>
+          <span class="card-badge">{{ unmaint|length }} found</span>
+        </div>
+        {% if unmaint %}
+          {% for lib in unmaint %}
+          <div class="unmaint-item">
+            <div class="unmaint-header">
+              <span class="unmaint-name">{{ lib.library }} v{{ lib.version }}</span>
+              <span class="unmaint-age">⏱ {{ (lib.age_days // 365) }}y {{ ((lib.age_days % 365) // 30) }}m ago</span>
+            </div>
+            <div class="unmaint-detail">Last updated: {{ lib.last_updated }} · Dep type: {{ lib.dep_type }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">✅ All libraries actively maintained</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right: Graph + Playbook + Compliance -->
+    <div class="detail-col">
+
+      <!-- Dependency Graph -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🕸️ Dependency Graph</h2>
+          <div class="graph-legend">
+            <span class="legend-dot" style="background:#ff3860;"></span><span>Vulnerable</span>
+            <span class="legend-dot" style="background:#a855f7;"></span><span>License Issue</span>
+            <span class="legend-dot" style="background:#ffd700;"></span><span>Unmaintained</span>
+            <span class="legend-dot" style="background:#23d160;"></span><span>Clean</span>
+          </div>
+        </div>
+        <div id="cy" style="height:380px; background:#0a1628; border-radius:8px;"></div>
+        <div id="nodeInfo" class="node-info hidden"></div>
+      </div>
+
+      <!-- What-If Simulation -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🧪 What-If Risk Simulation</h2>
+        </div>
+        <div class="simulate-controls" style="display: flex; gap: 10px; margin-top: 10px;">
+          <input type="text" id="simLib" placeholder="Library (e.g. log4j-core)" class="search-input" style="flex: 2; padding: 8px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;">
+          <input type="text" id="simVer" placeholder="Version (e.g. 2.17.1)" class="search-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;">
+          <button onclick="runSimulation()" class="button" style="padding: 8px 16px; border: none; background: #1a5cff; color: white; border-radius: 4px; cursor: pointer; font-weight: 600;">Simulate Patch</button>
+        </div>
+        <div id="simResult" class="hidden" style="margin-top: 15px; padding: 15px; background: #08111e; border-left: 4px solid #23d160; border-radius: 4px;"></div>
+      </div>
+
+      <!-- AI Security Copilot -->
+      <div class="card copilot-card" style="border: 1px solid #1a2744;">
+        <div class="card-header" style="background: linear-gradient(90deg, #1a2744 0%, #1a5cff 100%); margin: -20px -20px 15px -20px; padding: 15px 20px; border-radius: 8px 8px 0 0;">
+          <h2 class="card-title" style="color: white; margin: 0;">🧠 AI Security Copilot</h2>
+        </div>
+        <div id="copilotChat" style="height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; padding-right: 10px;">
+          <div class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px;">
+            I am your Security Copilot. I analyzed <strong>{{ application.name }}</strong> (Health: {{ score.health_score }}/100).<br><br>
+            Try asking:<br>
+            • <em>Why is this application Critical?</em><br>
+            • <em>Explain CVE-2021-44228</em><br>
+            • <em>How can I reduce this risk?</em><br>
+            • <em>Show all GPL conflicts</em>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="copilotInput" placeholder="Ask the Copilot..." style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #1a2744; background: #08111e; color: #fff;" onkeypress="if(event.key === 'Enter') askCopilot()">
+          <button onclick="askCopilot()" style="padding: 10px 15px; border: none; background: #1a5cff; color: white; border-radius: 4px; cursor: pointer; font-weight: 600;">Ask</button>
+        </div>
+      </div>
+
+      <!-- AI Narrative -->
+      <div class="card narrative-card">
+        <div class="card-header">
+          <h2 class="card-title">📝 Executive Summary</h2>
+          <span class="card-badge">Auto-generated</span>
+        </div>
+        <div class="narrative-body markdown-body">
+          {{ narrative | markdown }}
+        </div>
+      </div>
+
+      <!-- Remediation Playbook -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🎯 Remediation Playbook</h2>
+          <span class="card-badge">{{ playbook|length }} steps</span>
+        </div>
+        {% for step in playbook %}
+        <div class="playbook-step">
+          <div class="step-header">
+            <span class="step-num">Step {{ step.step }}</span>
+            <span class="step-priority" style="background: {{ step.color }}20; color: {{ step.color }}; border: 1px solid {{ step.color }}40;">{{ step.priority }}</span>
+            <span class="step-effort effort-{{ step.effort | lower }}">{{ step.effort }} effort</span>
+          </div>
+          <div class="step-action">{{ step.action }}</div>
+          <div class="step-detail">{{ step.detail }}</div>
+          <div class="step-why">💡 <em>{{ step.why }}</em></div>
+          <div class="step-cmd"><code>{{ step.patch_cmd }}</code></div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Compliance -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📋 Compliance Mapping</h2>
+        </div>
+        {% for comp in score.compliance %}
+        <div class="comp-row">
+          <span class="comp-fw">{{ comp.framework }}</span>
+          <span class="comp-ctrl">{{ comp.control }}</span>
+          <span class="comp-name-sm">{{ comp.name }}</span>
+          <span class="comp-st st-{{ comp.status | lower }}">
+            {% if comp.status == 'PASS' %}✅{% elif comp.status == 'FAIL' %}❌{% else %}⚠️{% endif %}
+            {{ comp.status }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <div>🛡️ SBOM Risk Intelligence Platform</div>
+  <div>OWASP A06 · NIST CM-8 · EO 14028 · OpenSSF Scorecard</div>
+</footer>
+
+<script>
+const CYTOSCAPE_DATA = {{ cytoscape_data | safe }};
+
+// ── Cytoscape Dependency Graph ──────────────────────────
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  elements: CYTOSCAPE_DATA,
+  style: [
+    { selector: 'node', style: {
+        'label': 'data(label)',
+        'text-valign': 'center', 'text-halign': 'center',
+        'font-family': 'Inter', 'font-size': '9px',
+        'color': '#e0e6ed', 'text-wrap': 'wrap', 'text-max-width': '90px',
+        'width': 70, 'height': 70,
+        'border-width': 2, 'border-color': '#1a2744',
+    }},
+    { selector: '.app-node', style: {
+        'background-color': '#1a5cff', 'border-color': '#4d8eff',
+        'font-weight': '700', 'font-size': '11px',
+        'width': 90, 'height': 90, 'shape': 'hexagon',
+    }},
+    { selector: '.vuln-node', style: { 'background-color': '#3d0a14', 'border-color': '#ff3860', 'border-width': 3 }},
+    { selector: '.cvss-critical', style: { 'background-color': '#4a0a0a', 'border-color': '#ff1744', 'border-width': 4 }},
+    { selector: '.cvss-high', style: { 'background-color': '#3d1a00', 'border-color': '#ff8c00' }},
+    { selector: '.license-node', style: { 'background-color': '#2a0a3d', 'border-color': '#a855f7' }},
+    { selector: '.unmaintained-node', style: { 'background-color': '#2a2000', 'border-color': '#ffd700' }},
+    { selector: '.clean-node', style: { 'background-color': '#0a1628', 'border-color': '#1a3a5c' }},
+    { selector: 'edge', style: {
+        'width': 1.5, 'line-color': '#1a3a5c',
+        'target-arrow-color': '#1a5cff', 'target-arrow-shape': 'triangle',
+        'curve-style': 'bezier', 'opacity': 0.7,
+    }},
+    { selector: '.edge-transitive', style: { 'line-style': 'dashed', 'line-color': '#ffd70060' }},
+  ],
+  layout: { name: 'cose', animate: true, padding: 30, nodeRepulsion: 8000, idealEdgeLength: 80 },
+  userZoomingEnabled: true, userPanningEnabled: true,
+});
+
+// Node click info
+const nodeInfo = document.getElementById('nodeInfo');
+cy.on('tap', 'node', function(evt) {
+  const data = evt.target.data();
+  if (data.node_type === 'app') {
+    nodeInfo.innerHTML = `<strong>${data.label}</strong> — Application Root`;
+  } else {
+    let html = `<strong>${data.label.split('\n')[0]}</strong>`;
+    if (data.has_cve) html += ` <span style="color:#ff3860">⚠ ${data.cve_ids.length} CVE(s)</span>`;
+    if (data.is_unmaintained) html += ` <span style="color:#ffd700">🔧 Unmaintained</span>`;
+    html += `<br><small>License: ${data.license} · Last updated: ${data.last_updated}</small>`;
+    nodeInfo.innerHTML = html;
+  }
+  nodeInfo.classList.remove('hidden');
+});
+cy.on('tap', function(evt) {
+  if (evt.target === cy) nodeInfo.classList.add('hidden');
+});
+
+// ── What-If Simulation ──────────────────────────────────
+async function runSimulation() {
+  const lib = document.getElementById('simLib').value.trim();
+  const ver = document.getElementById('simVer').value.trim();
+  if (!lib || !ver) return alert("Enter library and version to simulate.");
+  
+  const res = await fetch('/api/simulate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app_id: '{{ application.app_id }}', library: lib, new_version: ver })
+  });
+  
+  const simResult = document.getElementById('simResult');
+  if (res.ok) {
+    const data = await res.json();
+    simResult.innerHTML = `
+      <strong>Simulation Complete:</strong><br>
+      Risk Score: 📉 Drops from ${data.current_score.risk_score} to <strong>${data.simulated_score.risk_score}</strong> (-${data.reduction_absolute} pts, ${data.reduction_percentage}% reduction).<br>
+      Security Health: 📈 Improves from ${data.current_score.health_score} to <strong>${data.simulated_score.health_score}</strong>.
+    `;
+    simResult.classList.remove('hidden');
+  } else {
+    const data = await res.json();
+    alert(data.error);
+  }
+}
+
+// ── AI Copilot ──────────────────────────────────────────
+async function askCopilot() {
+  const input = document.getElementById('copilotInput');
+  const query = input.value.trim();
+  if (!query) return;
+  
+  const chat = document.getElementById('copilotChat');
+  
+  // Add user message
+  chat.innerHTML += `<div class="chat-msg user-msg" style="align-self: flex-end; background: #23d16020; border: 1px solid #23d16040; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px; color: #e0e6ed;">${query}</div>`;
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+  
+  // Add loading
+  const loadId = 'loading-' + Date.now();
+  chat.innerHTML += `<div id="${loadId}" class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 10px; border-radius: 8px; font-size: 13px;">Thinking...</div>`;
+  chat.scrollTop = chat.scrollHeight;
+  
+  const res = await fetch('/api/ai/copilot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app_id: '{{ application.app_id }}', query: query })
+  });
+  
+  document.getElementById(loadId).remove();
+  
+  if (res.ok) {
+    const data = await res.json();
+    // Simple markdown renderer for copilot responses
+    function renderMd(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.+?)`/g, '<code style="background:#0a1628;padding:2px 5px;border-radius:3px;">$1</code>')
+        .replace(/^### (.+)$/gm, '<h4 style="color:#4d8eff;margin:8px 0 4px;">$1</h4>')
+        .replace(/^- (.+)$/gm, '<li style="margin:2px 0;">$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li style="margin:2px 0;"><strong>$1.</strong> $2</li>')
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+    }
+    chat.innerHTML += `<div class="chat-msg bot-msg" style="align-self: flex-start; background: #1a2744; padding: 12px; border-radius: 8px; max-width: 90%; font-size: 13px; line-height: 1.6;">${renderMd(data.response)}</div>`;
+  } else {
+    chat.innerHTML += `<div class="chat-msg bot-msg" style="align-self: flex-start; background: #3d0a14; padding: 10px; border-radius: 8px; max-width: 85%; font-size: 13px;">Error connecting to Copilot API.</div>`;
+  }
+  chat.scrollTop = chat.scrollHeight;
+}
+</script>
+<script>
+    async function switchDataset(dsName) {
+      const btn = document.getElementById("datasetSelect");
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/dataset/switch', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dataset_name: dsName})
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = "/";
+        } else {
+          alert('Failed to switch dataset: ' + data.error);
+        }
+      } catch (e) {
+        alert('Failed to switch dataset: ' + e);
+      }
+      btn.disabled = false;
+    }
+</script>
+</body>
+</html>

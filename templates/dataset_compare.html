@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Compare Datasets | SBOM Risk Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <style>
+    .compare-container {
+      padding: 30px 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .compare-header {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+    .compare-col {
+      background: rgba(13, 22, 38, 0.6);
+      border: 1px solid rgba(26, 92, 255, 0.3);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+    }
+    .vs-col {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: #1a5cff;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+    .metric-label {
+      color: #8899aa;
+      font-weight: 500;
+      flex: 1;
+      text-align: left;
+    }
+    .metric-val {
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      text-align: center;
+    }
+    .metric-delta {
+      flex: 1;
+      text-align: right;
+      font-weight: 700;
+    }
+    .delta-up { color: #ff3366; } /* more risk/cves = bad */
+    .delta-down { color: #00ff88; } /* less risk/cves = good */
+    .delta-neutral { color: #8899aa; }
+    
+    .ds-select {
+        background: #0a1128;
+        color: white;
+        border: 1px solid #1a5cff;
+        padding: 10px;
+        border-radius: 6px;
+        width: 100%;
+        margin-top: 15px;
+        font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">🛡️</span>
+    <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    <span class="nav-subtitle">Intelligence Platform</span>
+  </div>
+  <div class="nav-links">
+    <a href="/datasets" class="nav-link">Dataset Manager</a>
+    <a href="/" class="nav-link">Dashboard</a>
+    <a href="/compare" class="nav-link active">Compare Datasets</a>
+  </div>
+</nav>
+
+<div class="compare-container">
+  <div class="compare-header">
+    <h1 class="page-title">Dataset Comparison</h1>
+    <p class="page-subtitle" style="color: #8899aa;">Compare two environments side-by-side to track security posture deltas.</p>
+  </div>
+
+  <form method="GET" action="/compare" class="compare-grid">
+    <div class="compare-col">
+      <h3 style="color:#fff; margin-bottom: 10px;">Baseline Dataset</h3>
+      <select name="ds1" class="ds-select" onchange="this.form.submit()">
+        {% for ds in available_datasets %}
+          <option value="{{ ds }}" {% if ds == ds1_name %}selected{% endif %}>{{ ds | title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="vs-col">VS</div>
+    
+    <div class="compare-col">
+      <h3 style="color:#fff; margin-bottom: 10px;">Target Dataset</h3>
+      <select name="ds2" class="ds-select" onchange="this.form.submit()">
+        {% for ds in available_datasets %}
+          <option value="{{ ds }}" {% if ds == ds2_name %}selected{% endif %}>{{ ds | title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <div class="card" style="padding: 30px;">
+    <h2 style="color: #fff; margin-bottom: 20px; font-size: 1.5rem;">Posture Deltas</h2>
+    
+    {% for metric in metrics %}
+    <div class="metric-row">
+      <div class="metric-label">{{ metric.label }}</div>
+      <div class="metric-val">{{ metric.val1 }} &rarr; {{ metric.val2 }}</div>
+      
+      <div class="metric-delta {% if metric.delta > 0 %}delta-up{% elif metric.delta < 0 %}delta-down{% else %}delta-neutral{% endif %}">
+        {% if metric.delta > 0 %}+{{ metric.delta }}{% elif metric.delta < 0 %}{{ metric.delta }}{% else %}-{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    
+  </div>
+
+</div>
+
+</body>
+</html>

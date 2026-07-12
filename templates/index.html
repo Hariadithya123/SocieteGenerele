@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SBOM Risk Intelligence Platform | Security Dashboard</title>
+  <meta name="description" content="Enterprise software supply chain risk analysis — detect vulnerable dependencies, license conflicts, and unmaintained libraries across your application portfolio."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  
+  <!-- DataTables CSS for advanced filtering & export -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"/>
+  
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <style>
+    /* DataTables Dark Theme Overrides */
+    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_filter, .dataTables_wrapper .dataTables_info, .dataTables_wrapper .dataTables_processing, .dataTables_wrapper .dataTables_paginate {
+      color: #8899aa;
+      margin-bottom: 10px;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+      border: 1px solid #1a2744;
+      background: #08111e;
+      color: #fff;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    table.dataTable.no-footer {
+      border-bottom: 1px solid #1a2744;
+    }
+    .dt-buttons .dt-button {
+      background: #1a5cff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">🛡️</span>
+    <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    <span class="nav-subtitle">Intelligence Platform</span>
+  </div>
+  <div class="nav-links">
+    <div class="dataset-switcher">
+      <select id="datasetSelect" onchange="switchDataset(this.value)">
+        {% for ds in available_datasets %}
+          <option value="{{ ds }}" {% if current_dataset == ds %}selected{% endif %}>{{ ds | title }} Dataset</option>
+        {% endfor %}
+      </select>
+    </div>
+    <a href="/datasets" class="nav-btn">Dataset Manager</a>
+    <a href="/" class="nav-link active">Dashboard</a>
+    <a href="/report" class="nav-link">Full Report</a>
+    <a href="/api/export/csv" class="nav-link btn-export">⬇ Export CSV</a>
+  </div>
+  <div class="nav-search">
+    <input type="text" id="globalSearch" placeholder="Search CVE or library..." class="search-input"/>
+    <div id="searchResults" class="search-dropdown hidden"></div>
+  </div>
+</nav>
+
+<!-- ── Hero Stats ────────────────────────────────────── -->
+<div class="hero-banner {% if portfolio.portfolio_health == 'CRITICAL' %}hero-critical{% elif portfolio.portfolio_health == 'HIGH' %}hero-high{% else %}hero-medium{% endif %}">
+  <div class="hero-content">
+    <div class="hero-badge">PORTFOLIO HEALTH: {{ portfolio.portfolio_health }}</div>
+    <h1 class="hero-title">Supply Chain Risk Overview</h1>
+    <p class="hero-subtitle">{{ portfolio.total_apps }} applications analysed · {{ portfolio.total_unique_cves }} CVEs detected · Last scan: <span id="scanTime"></span></p>
+  </div>
+</div>
+
+<!-- ── KPI Cards ─────────────────────────────────────── -->
+<div class="container">
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-critical" title="Apps with Risk Score ≥ 75 (CRITICAL risk band). Separate from app criticality label.">
+      <div class="kpi-icon">🔴</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.critical_apps }}">0</div>
+      <div class="kpi-label">Critical Risk Apps <span style="font-size:10px;opacity:0.7;">(Score≥75)</span></div>
+    </div>
+    <div class="kpi-card kpi-high">
+      <div class="kpi-icon">🟠</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.high_apps }}">0</div>
+      <div class="kpi-label">High Risk Apps</div>
+    </div>
+    <div class="kpi-card kpi-vuln">
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.total_unique_cves }}">0</div>
+      <div class="kpi-label">Total CVEs Found</div>
+    </div>
+    <div class="kpi-card kpi-critical-cve">
+      <div class="kpi-icon">💀</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.critical_cves }}">0</div>
+      <div class="kpi-label">Critical CVEs (CVSS≥9)</div>
+    </div>
+    <div class="kpi-card kpi-license">
+      <div class="kpi-icon">⚖️</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.total_license_conflicts }}">0</div>
+      <div class="kpi-label">License Conflicts</div>
+    </div>
+    <div class="kpi-card kpi-maint">
+      <div class="kpi-icon">🔧</div>
+      <div class="kpi-value counter" data-target="{{ portfolio.total_unmaintained }}">0</div>
+      <div class="kpi-label">Unmaintained Libs</div>
+    </div>
+  </div>
+
+  <!-- ── Charts Row ──────────────────────────────────── -->
+  <div class="charts-grid">
+    <div class="card chart-card">
+      <div class="card-header">
+        <h2 class="card-title">📊 Risk Score Distribution</h2>
+        <span class="card-badge">All Applications</span>
+      </div>
+      <div id="riskBarChart" style="height:300px;"></div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header">
+        <h2 class="card-title">🍩 Risk Breakdown</h2>
+        <span class="card-badge">By Category</span>
+      </div>
+      <div id="riskDonut" style="height:300px;"></div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header">
+        <h2 class="card-title">🗺️ Risk Heatmap</h2>
+        <span class="card-badge">App × Risk Type</span>
+      </div>
+      <div id="riskHeatmap" style="height:300px;"></div>
+    </div>
+    <div class="card chart-card">
+      <div class="card-header">
+        <h2 class="card-title">📈 Historical Risk Trend</h2>
+        <span class="card-badge">Last 30 Days</span>
+      </div>
+      <div id="riskTrendChart" style="height:300px;"></div>
+    </div>
+  </div>
+
+  <!-- ── Worst App Spotlight ─────────────────────────── -->
+  {% if portfolio.worst_app %}
+  <div class="card spotlight-card">
+    <div class="spotlight-header">
+      <span class="spotlight-badge pulse">🚨 HIGHEST RISK APPLICATION</span>
+      <span class="spotlight-score" style="color: {{ portfolio.worst_app.risk_color }};">{{ portfolio.worst_app.risk_score }}/100</span>
+    </div>
+    <div class="spotlight-body">
+      <div class="spotlight-name">{{ portfolio.worst_app.app_name }}</div>
+      <div class="spotlight-meta">{{ portfolio.worst_app.team }} · {{ portfolio.worst_app.criticality }} Criticality · {{ portfolio.worst_app.total_cves }} CVEs</div>
+      <div class="spotlight-desc">{{ portfolio.worst_app.description }}</div>
+      <a href="/app/{{ portfolio.worst_app.app_id }}" class="btn btn-danger">View Full Analysis →</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Risk Leaderboard ────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">🏆 Application Risk Leaderboard</h2>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="CRITICAL">Critical</button>
+        <button class="filter-btn" data-filter="HIGH">High</button>
+        <button class="filter-btn" data-filter="MEDIUM">Medium</button>
+        <button class="filter-btn" data-filter="LOW">Low</button>
+      </div>
+    </div>
+    <div class="leaderboard-table-wrap">
+      <table class="leaderboard-table" id="leaderboardTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Application</th>
+            <th>Team</th>
+            <th>Criticality</th>
+            <th>Risk Score</th>
+            <th>Confidence</th>
+            <th>CVEs</th>
+            <th>License</th>
+            <th>Unmaintained</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for score in all_scores %}
+          <tr class="app-row" data-band="{{ score.risk_band }}" data-score="{{ score.risk_score }}">
+            <td class="rank">{{ loop.index }}</td>
+            <td class="app-name-cell">
+              <span class="risk-dot" style="background:{{ score.risk_color }};"></span>
+              <strong>{{ score.app_name }}</strong>
+            </td>
+            <td><span class="team-badge">{{ score.team }}</span></td>
+            <td><span class="criticality-badge crit-{{ score.criticality | lower }}">{{ score.criticality }}</span></td>
+            <td>
+              <div class="score-bar-wrap" title="Score Breakdown:&#10;• Technical Risk: {{ score.technical_risk }}&#10;• Business Impact: {{ score.business_impact }}x&#10;• License: {{ score.lic_score }}&#10;• Maintenance: {{ score.maint_score }}&#10;• Exposure: {% if score.internet_exposure %}Yes{% else %}No{% endif %}">
+                <div class="score-bar" style="width:{{ score.risk_score }}%; background:{{ score.risk_color }};"></div>
+                <span class="score-num">{{ score.risk_score }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="issue-badge issue-ok">{{ score.confidence }}%</span>
+            </td>
+            <td>
+              {% if score.critical_cves > 0 %}<span class="cve-badge cve-critical">{{ score.critical_cves }} CRIT</span>{% endif %}
+              {% if score.high_cves > 0 %}<span class="cve-badge cve-high">{{ score.high_cves }} HIGH</span>{% endif %}
+              {% if score.total_cves > 0 and score.critical_cves == 0 and score.high_cves == 0 %}
+                <span class="cve-badge cve-medium">{{ score.total_cves }} VULN</span>
+              {% endif %}
+              {% if score.total_cves == 0 %}<span class="cve-badge cve-clean">✓ Clean</span>{% endif %}
+            </td>
+            <td>
+              {% if score.license_conflicts > 0 %}
+                <span class="issue-badge issue-bad">⚖️ {{ score.license_conflicts }}</span>
+              {% else %}
+                <span class="issue-badge issue-ok">✓</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if score.unmaintained_libs > 0 %}
+                <span class="issue-badge issue-warn">🔧 {{ score.unmaintained_libs }}</span>
+              {% else %}
+                <span class="issue-badge issue-ok">✓</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/app/{{ score.app_id }}" class="btn btn-sm btn-view">Analyse →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Compliance Summary ──────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">📋 Framework Compliance Status</h2>
+    </div>
+    <div class="compliance-grid">
+      <div class="compliance-item {% if portfolio.critical_apps > 0 %}comp-fail{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">OWASP</div>
+        <div class="comp-name">A06:2021 — Vulnerable Components</div>
+        <div class="comp-status">{% if portfolio.critical_apps > 0 %}❌ FAIL{% else %}✅ PASS{% endif %}</div>
+        <div class="comp-detail">{{ portfolio.total_unique_cves }} CVEs found across portfolio</div>
+      </div>
+      <div class="compliance-item {% if portfolio.total_license_conflicts > 0 %}comp-warn{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">LEGAL</div>
+        <div class="comp-name">Open Source License Compliance</div>
+        <div class="comp-status">{% if portfolio.total_license_conflicts > 0 %}⚠️ REVIEW{% else %}✅ PASS{% endif %}</div>
+        <div class="comp-detail">{{ portfolio.total_license_conflicts }} copyleft conflicts detected</div>
+      </div>
+      <div class="compliance-item {% if portfolio.critical_apps > 0 %}comp-fail{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">NIST</div>
+        <div class="comp-name">CM-8 — Component Inventory</div>
+        <div class="comp-status">{% if portfolio.critical_apps > 0 %}❌ FAIL{% else %}✅ PASS{% endif %}</div>
+        <div class="comp-detail">Unpatched critical CVEs violate CM-8</div>
+      </div>
+      <div class="compliance-item comp-pass">
+        <div class="comp-logo">EO14028</div>
+        <div class="comp-name">SBOM Requirement</div>
+        <div class="comp-status">✅ PASS</div>
+        <div class="comp-detail">SBOM generated for all {{ portfolio.total_apps }} applications</div>
+      </div>
+      <div class="compliance-item {% if portfolio.total_unmaintained > 0 %}comp-warn{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">OpenSSF</div>
+        <div class="comp-name">Scorecard — Maintained</div>
+        <div class="comp-status">{% if portfolio.total_unmaintained > 0 %}⚠️ WARN{% else %}✅ PASS{% endif %}</div>
+        <div class="comp-detail">{{ portfolio.total_unmaintained }} unmaintained libraries detected</div>
+      </div>
+      <div class="compliance-item {% if portfolio.critical_apps > 0 %}comp-fail{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">SC-2</div>
+        <div class="comp-name">NIST — Supplier Assessment</div>
+        <div class="comp-status">{% if portfolio.critical_apps > 0 %}❌ FAIL{% else %}✅ PASS{% endif %}</div>
+        <div class="comp-detail">{{ portfolio.critical_apps + portfolio.high_apps }} high-risk suppliers not assessed</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer class="footer">
+  <div>🛡️ SBOM Risk Intelligence Platform &nbsp;|&nbsp; Built for Enterprise Supply Chain Security</div>
+  <div>OWASP A06 · NIST CM-8 · EO 14028 · OpenSSF Scorecard</div>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="/static/js/main.js"></script>
+<script>
+// Pass data to JS
+const ALL_SCORES = {{ all_scores | tojson }};
+const PORTFOLIO  = {{ portfolio | tojson }};
+
+// Live timestamp
+document.getElementById('scanTime').textContent = new Date().toLocaleString();
+
+// Animated counters
+document.querySelectorAll('.counter').forEach(el => {
+  const target = parseInt(el.dataset.target);
+  let current = 0;
+  const step = Math.ceil(target / 40);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(timer);
+  }, 30);
+});
+
+// ── Risk Bar Chart ──────────────────────────────────────
+Plotly.newPlot('riskBarChart', [{
+  type: 'bar',
+  x: ALL_SCORES.map(s => s.app_name),
+  y: ALL_SCORES.map(s => s.risk_score),
+  marker: {
+    color: ALL_SCORES.map(s => s.risk_color),
+    line: { color: 'rgba(255,255,255,0.1)', width: 1 }
+  },
+  text: ALL_SCORES.map(s => s.risk_score.toFixed(1)),
+  textposition: 'outside',
+  hovertemplate: '<b>%{x}</b><br>Risk Score: %{y:.1f}<extra></extra>'
+}], {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor: 'transparent',
+  font: { color: '#e0e6ed', family: 'Inter', size: 11 },
+  margin: { t: 20, b: 80, l: 40, r: 20 },
+  xaxis: { tickangle: -35, gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+  yaxis: { range: [0, 110], gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+  showlegend: false,
+}, { responsive: true, displayModeBar: false });
+
+// ── Donut Chart ─────────────────────────────────────────
+Plotly.newPlot('riskDonut', [{
+  type: 'pie',
+  hole: 0.6,
+  labels: ['Critical Apps', 'High Apps', 'Medium Apps', 'Low Apps'],
+  values: [PORTFOLIO.critical_apps, PORTFOLIO.high_apps, PORTFOLIO.medium_apps, PORTFOLIO.low_apps],
+  marker: { colors: ['#ff3860','#ff8c00','#ffd700','#23d160'] },
+  textinfo: 'label+percent',
+  hovertemplate: '<b>%{label}</b><br>%{value} apps (%{percent})<extra></extra>',
+  textfont: { color: '#e0e6ed', family: 'Inter', size: 12 }
+}], {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor: 'transparent',
+  font: { color: '#e0e6ed', family: 'Inter' },
+  margin: { t: 20, b: 20, l: 20, r: 20 },
+  showlegend: false,
+}, { responsive: true, displayModeBar: false });
+
+// ── Heatmap ─────────────────────────────────────────────
+const heatmapApps   = ALL_SCORES.map(s => s.app_name);
+const heatmapTypes  = ['Vuln Score', 'License Score', 'Maint Score', 'Total CVEs', 'Critical CVEs'];
+const heatmapData   = [
+  ALL_SCORES.map(s => s.vuln_score),
+  ALL_SCORES.map(s => s.lic_score),
+  ALL_SCORES.map(s => s.maint_score),
+  ALL_SCORES.map(s => Math.min(100, s.total_cves * 10)),
+  ALL_SCORES.map(s => Math.min(100, s.critical_cves * 25)),
+];
+
+Plotly.newPlot('riskHeatmap', [{
+  type: 'heatmap',
+  z: heatmapData,
+  x: heatmapApps,
+  y: heatmapTypes,
+  colorscale: [[0,'#0a1628'],[0.25,'#1a3a5c'],[0.5,'#ffd700'],[0.75,'#ff8c00'],[1,'#ff3860']],
+  hovertemplate: '<b>%{x}</b><br>%{y}: %{z:.0f}<extra></extra>',
+  showscale: false,
+}], {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor: 'transparent',
+  font: { color: '#8899aa', family: 'Inter', size: 10 },
+  margin: { t: 10, b: 80, l: 100, r: 10 },
+  xaxis: { tickangle: -35, gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+  yaxis: { gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+}, { responsive: true, displayModeBar: false });
+
+// ── Filter buttons ──────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    const filter = this.dataset.filter;
+    document.querySelectorAll('.app-row').forEach(row => {
+      if (filter === 'all' || row.dataset.band === filter) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+});
+
+// ── Global Search ───────────────────────────────────────
+const searchInput = document.getElementById('globalSearch');
+const searchDrop  = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', async function () {
+  const q = this.value.trim();
+  if (q.length < 2) { searchDrop.classList.add('hidden'); return; }
+  const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  if (!data.length) { 
+    searchDrop.innerHTML = '<div class="search-item">No CVE/library found matching "' + q + '"</div>'; 
+    searchDrop.classList.remove('hidden'); 
+    return; 
+  }
+  searchDrop.innerHTML = data.slice(0,8).map(r =>
+    `<a class="search-item" href="/app/${r.app_id}">
+      <span class="search-cve">${r.cve_id}</span>
+      <span class="search-lib">${r.library}</span>
+      <span class="search-app">${r.app_name}</span>
+      <span class="search-sev sev-${r.severity.toLowerCase()}">${r.severity}</span>
+    </a>`
+  ).join('');
+  searchDrop.classList.remove('hidden');
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-search')) searchDrop.classList.add('hidden');
+});
+
+// ── Historical Trend Chart ──────────────────────────────
+async function loadTrendChart() {
+  const res = await fetch('/api/metrics/trends');
+  if (res.ok) {
+    const data = await res.json();
+    const dates = data.map(d => d.date);
+    const avgRisk = data.map(d => d.avg_risk);
+    const secHealth = data.map(d => d.security_health);
+    
+    Plotly.newPlot('riskTrendChart', [
+      { x: dates, y: avgRisk, type: 'scatter', mode: 'lines+markers', name: 'Avg Risk', line: { color: '#ff3860', width: 3 } },
+      { x: dates, y: secHealth, type: 'scatter', mode: 'lines+markers', name: 'Security Health', line: { color: '#23d160', width: 3 } }
+    ], {
+      paper_bgcolor: 'transparent', plot_bgcolor: 'transparent',
+      font: { color: '#e0e6ed', family: 'Inter', size: 11 },
+      margin: { t: 20, b: 40, l: 40, r: 20 },
+      xaxis: { gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+      yaxis: { range: [0, 100], gridcolor: 'rgba(255,255,255,0.05)', color: '#8899aa' },
+      legend: { orientation: 'h', y: -0.2 }
+    }, { responsive: true, displayModeBar: false });
+  }
+}
+loadTrendChart();
+
+// ── DataTables Initialization ───────────────────────────
+$(document).ready(function() {
+  $('#leaderboardTable').DataTable({
+    dom: 'Bfrtip',
+    buttons: [
+      'copyHtml5',
+      'excelHtml5',
+      'csvHtml5',
+      'pdfHtml5'
+    ],
+    pageLength: 10,
+    order: [[4, 'desc']], // Sort by Risk Score descending
+    language: {
+      search: "Filter Applications:"
+    }
+  });
+});
+</script>
+<script>
+    async function switchDataset(dsName) {
+      const btn = document.getElementById("datasetSelect");
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/dataset/switch', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dataset_name: dsName})
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert('Failed to switch dataset: ' + data.error);
+        }
+      } catch (e) {
+        alert('Failed to switch dataset: ' + e);
+      }
+      btn.disabled = false;
+    }
+    
+    // Set the selected value to match the current dataset if passed from backend
+    // Since we don't pass 'current_dataset' to index.html currently, we'll need to do it or wait for a template variable.
+  </script>
+</body>
+</html>

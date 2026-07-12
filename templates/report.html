@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Full Portfolio Report | SBOM Risk Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" style="text-decoration:none;display:flex;align-items:center;gap:10px;">
+      <span class="nav-icon">🛡️</span>
+      <span class="nav-title">SBOM<span class="accent">Risk</span></span>
+    </a>
+  </div>
+  <div class="nav-links">
+    <div class="dataset-switcher">
+      <select id="datasetSelect" onchange="switchDataset(this.value)">
+        {% for ds in available_datasets %}
+          <option value="{{ ds }}" {% if current_dataset == ds %}selected{% endif %}>{{ ds | title }} Dataset</option>
+        {% endfor %}
+      </select>
+    </div>
+    <a href="/datasets" class="nav-btn">Dataset Manager</a>
+    <a href="/" class="nav-link">← Dashboard</a>
+    <a href="#" onclick="window.print()" class="nav-link btn-export">🖨️ Save as PDF</a>
+    <a href="/api/export/csv" class="nav-link btn-export">⬇ Export CSV</a>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="report-header card" style="page-break-after: avoid;">
+    <h1 class="report-title">📄 Enterprise SBOM Security Report</h1>
+    <div class="report-meta">
+      Generated: <strong id="reportDate"></strong> &nbsp;|&nbsp;
+      {{ portfolio.total_apps }} Applications &nbsp;|&nbsp;
+      Portfolio Health: <span style="color: {% if portfolio.portfolio_health == 'CRITICAL' %}#ff3860{% elif portfolio.portfolio_health == 'HIGH' %}#ff8c00{% else %}#ffd700{% endif %}">{{ portfolio.portfolio_health }}</span>
+    </div>
+    <div class="report-kpis">
+      <div class="rk-item"><span class="rk-num">{{ portfolio.total_unique_cves }}</span><span class="rk-lbl">Total CVEs</span></div>
+      <div class="rk-item"><span class="rk-num">{{ portfolio.critical_cves }}</span><span class="rk-lbl">Critical CVEs</span></div>
+      <div class="rk-item"><span class="rk-num">{{ portfolio.total_license_conflicts }}</span><span class="rk-lbl">License Conflicts</span></div>
+      <div class="rk-item"><span class="rk-num">{{ portfolio.total_unmaintained }}</span><span class="rk-lbl">Unmaintained Libs</span></div>
+      <div class="rk-item"><span class="rk-num">{{ portfolio.avg_risk_score }}</span><span class="rk-lbl">Avg Risk Score</span></div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="card" style="margin-bottom: 30px; page-break-after: always;">
+    <div class="card-header"><h2 class="card-title">📝 Executive Summary</h2></div>
+    <div style="padding: 15px; font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.6; color: #a1b2c3;">
+      <p>This report presents the findings of a comprehensive Software Supply Chain risk analysis across <strong>{{ portfolio.total_apps }}</strong> applications.</p>
+      <p>The overall portfolio health is marked as <strong>{{ portfolio.portfolio_health }}</strong>, driven by the presence of <strong>{{ portfolio.critical_apps }}</strong> critical-risk applications and <strong>{{ portfolio.critical_cves }}</strong> critical vulnerabilities (CVSS ≥ 9.0).</p>
+      <p>Immediate remediation efforts should be focused on the highest-ranking applications listed in the Risk Ranking below, specifically prioritizing the resolution of vulnerabilities where patches are currently available.</p>
+    </div>
+  </div>
+  
+  <!-- Compliance Summary -->
+  <div class="card" style="margin-bottom: 30px; page-break-after: auto;">
+    <div class="card-header"><h2 class="card-title">📋 Compliance & Regulatory Stance</h2></div>
+    <div class="compliance-grid" style="padding: 15px;">
+      <div class="compliance-item {% if portfolio.critical_apps > 0 %}comp-fail{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">OWASP</div><div class="comp-name">A06:2021</div>
+        <div class="comp-status">{% if portfolio.critical_apps > 0 %}❌ FAIL{% else %}✅ PASS{% endif %}</div>
+      </div>
+      <div class="compliance-item {% if portfolio.critical_apps > 0 %}comp-fail{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">NIST</div><div class="comp-name">CM-8</div>
+        <div class="comp-status">{% if portfolio.critical_apps > 0 %}❌ FAIL{% else %}✅ PASS{% endif %}</div>
+      </div>
+      <div class="compliance-item {% if portfolio.total_license_conflicts > 0 %}comp-warn{% else %}comp-pass{% endif %}">
+        <div class="comp-logo">LEGAL</div><div class="comp-name">License</div>
+        <div class="comp-status">{% if portfolio.total_license_conflicts > 0 %}⚠️ REVIEW{% else %}✅ PASS{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <h2 style="color: #e0e6ed; border-bottom: 1px solid #1a2744; padding-bottom: 10px; margin-top: 40px; margin-bottom: 20px;">Detailed Application Risk Ranking (Appendix)</h2>
+  
+  {% for item in detailed %}
+  {% set s = item.score %}
+  <div class="card report-app-card" style="border-left: 3px solid {{ s.risk_color }}; page-break-inside: avoid; margin-bottom: 20px;">
+    <div class="report-app-header">
+      <div>
+        <span class="app-badge" style="background:{{ s.risk_color }}20;color:{{ s.risk_color }};border:1px solid {{ s.risk_color }}40;">{{ s.risk_band }}</span>
+        <span class="report-app-name">{{ s.app_name }}</span>
+        <span class="team-badge">{{ s.team }}</span>
+      </div>
+      <div class="report-app-score" style="color:{{ s.risk_color }};">{{ s.risk_score }}<span>/100</span></div>
+    </div>
+
+    <div class="report-app-stats">
+      <div class="ras-item"><span>CVEs</span><strong>{{ s.total_cves }}</strong></div>
+      <div class="ras-item"><span>Critical</span><strong style="color:#ff3860">{{ s.critical_cves }}</strong></div>
+      <div class="ras-item"><span>License Issues</span><strong>{{ s.license_conflicts }}</strong></div>
+      <div class="ras-item"><span>Unmaintained</span><strong>{{ s.unmaintained_libs }}</strong></div>
+    </div>
+
+    {% if item.chains %}
+    <div class="report-section-title">Top Vulnerabilities</div>
+    {% for chain in item.chains %}
+    <div class="report-chain-row">
+      <span class="sev-badge sev-{{ chain.severity | lower }}">{{ chain.severity }}</span>
+      <span class="report-cve">{{ chain.cve_id }}</span>
+      <span class="report-cvss">CVSS {{ chain.cvss }}</span>
+      <span class="report-lib">{{ chain.vulnerable_lib }} v{{ chain.version }}</span>
+      {% if chain.patch_available %}
+      <span class="patch-badge patch-ok">→ v{{ chain.patch_version }}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if item.playbook %}
+    <div class="report-section-title">Remediation Steps</div>
+    {% for step in item.playbook %}
+    <div class="report-step">
+      <span class="step-num-sm">{{ step.step }}</span>
+      <span class="step-priority-sm" style="color:{{ step.color }};">{{ step.priority }}</span>
+      <span class="step-action-sm">{{ step.action }}</span>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="report-app-footer">
+      <a href="/app/{{ s.app_id }}" class="btn btn-sm btn-view">Full Analysis →</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<footer class="footer">
+  <div>🛡️ SBOM Risk Intelligence Platform — Confidential Security Report</div>
+  <div>OWASP A06:2021 · NIST CM-8 · EO 14028 · OpenSSF Scorecard</div>
+</footer>
+
+<script>document.getElementById('reportDate').textContent = new Date().toLocaleString();</script>
+<script>
+    async function switchDataset(dsName) {
+      const btn = document.getElementById("datasetSelect");
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/dataset/switch', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({dataset_name: dsName})
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = "/";
+        } else {
+          alert('Failed to switch dataset: ' + data.error);
+        }
+      } catch (e) {
+        alert('Failed to switch dataset: ' + e);
+      }
+      btn.disabled = false;
+    }
+</script>
+</body>
+</html>

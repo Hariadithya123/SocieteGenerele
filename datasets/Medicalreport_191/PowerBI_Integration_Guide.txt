@@ -1,0 +1,62 @@
+# Power BI Dashboard Setup & AI Integration Guide
+
+This guide explains how to connect your MySQL database to Power BI and how to use the Artificial Intelligence model we trained to predict Turnaround Times.
+
+## Step 1: Connect Power BI to MySQL
+1. Open **Power BI Desktop**.
+2. Click on **Get Data** -> **More...**
+3. Select **Database** -> **MySQL database** and click **Connect**.
+4. In the Server field, type: `localhost`
+5. In the Database field, type: `medical_lab_db`
+6. When prompted for credentials, use:
+   - Username: `root`
+   - Password: `Baala@1975`
+7. Select the four tables (`sample_id`, `equipment_id`, `reagent_id`, `rejection_id`) and click **Load**.
+
+## Step 2: Establish Relationships in Power BI
+1. Go to the **Model View** (the icon on the left with three connected boxes).
+2. Ensure the tables are linked correctly:
+   - Link `sample_id` [SAMPLE ID] to `equipment_id` [SAMPLE ID].
+   - Link `sample_id` [TEST NAME] to `reagent_id` [TEST NAME] (if applicable for filtering).
+   - Link `sample_id` [SAMPLE ID] to `rejection_id` [SAMPLE ID].
+
+## Step 3: Run the AI Model inside Power BI
+Power BI allows you to run Python scripts directly on your data! We will use the model we saved earlier to predict the Turnaround Time for pending samples.
+
+1. Go to the **Report View**.
+2. Go to the **Transform Data** menu (Power Query Editor).
+3. Select the `sample_id` table on the left.
+4. Go to the **Transform** tab on the top ribbon and click **Run Python script**.
+5. Paste the following script into the window:
+
+```python
+import pandas as pd
+import joblib
+
+# Load the trained model
+model = joblib.load('c:/Users/Baalamuruga Y K/Downloads/Medicalreport/tat_prediction_model.pkl')
+
+# Extract features
+dataset['COLLECTION TIME'] = pd.to_datetime(dataset['COLLECTION TIME'])
+dataset['collection_hour'] = dataset['COLLECTION TIME'].dt.hour
+dataset['collection_dayofweek'] = dataset['COLLECTION TIME'].dt.dayofweek
+
+# Prepare input for the model
+X_input = dataset[['DEPARTMENT', 'TEST NAME', 'collection_hour', 'collection_dayofweek']]
+
+# Predict turnaround time (in minutes)
+dataset['Predicted_TAT_Minutes'] = model.predict(X_input)
+```
+
+6. Click **OK**.
+7. Power BI will execute the script. You will see a new step added to your Applied Steps. Click on the "Table" link in the new column to expand the data.
+8. Click **Close & Apply** in the top left of the Power Query Editor.
+
+## Step 4: Build Dashboard Visuals
+Now that your data and AI predictions are loaded, create these visuals:
+1. **Average Predicted Turnaround Time by Department:** Use a Bar Chart. Put `DEPARTMENT` in the X-axis and Average of `Predicted_TAT_Minutes` in the Y-axis.
+2. **Equipment Downtime:** Use a Pie Chart or Donut Chart. Put `FAILURE REASON` in the Legend and Count of `EQUIPMENT ID` in the Values.
+3. **Reagent Stock Status:** Use a Column Chart. Put `TEST NAME` in the X-axis and Count of `STOCK STATUS` (colored by status) in the Y-axis.
+4. **Rejection Rates:** Use a Card or Gauge to show the percentage of `REJECTED` vs `ACCEPTED` samples from the `rejection_id` table.
+
+By following these steps, you will have a fully functional, AI-powered Medical Lab Dashboard!
